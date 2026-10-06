@@ -36,6 +36,4 @@ type UserResponse struct {
 	RegistrationDate time.Time `json:"registration_date"`
 	EventCount       int       `json:"event_count"`
 	GuideCount       int       `json:"guide_count"`
-	IsModerator      bool      `json:"is_moderator"`
-	IsVeteran        bool      `json:"is_veteran"`
 }

@@ -63,8 +63,6 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		RegistrationDate: user.RegistrationDate,
 		EventCount:       user.EventCount,
 		GuideCount:       user.GuideCount,
-		IsModerator:      user.IsModerator,
-		IsVeteran:        user.IsVeteran,
 	}
 
 	c.JSON(http.StatusCreated, response)
@@ -108,8 +106,6 @@ func (h *UserHandler) GetUserById(c *gin.Context) {
 		RegistrationDate: user.RegistrationDate,
 		EventCount:       user.EventCount,
 		GuideCount:       user.GuideCount,
-		IsModerator:      user.IsModerator,
-		IsVeteran:        user.IsVeteran,
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -204,8 +200,6 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		RegistrationDate: updatedUser.RegistrationDate,
 		EventCount:       updatedUser.EventCount,
 		GuideCount:       updatedUser.GuideCount,
-		IsModerator:      updatedUser.IsModerator,
-		IsVeteran:        updatedUser.IsVeteran,
 	}
 
 	c.JSON(http.StatusOK, response)

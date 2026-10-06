@@ -90,3 +90,20 @@ func createConstraints() error {
 	}
 	return nil
 }
+
+func HasAccess(userID int, accessName string) bool {
+	var count int64
+
+	err := DB.Model(&models.User{}).
+		Joins("JOIN user_role ur ON ur.user_id = users.id").
+		Joins("JOIN role_access ra ON ra.role_id = ur.role_id").
+		Joins("JOIN access a ON a.access_id = ra.access_id").
+		Where("users.id = ? AND a.access_name = ?", userID, accessName).
+		Count(&count).Error
+
+	if err != nil {
+		return false
+	}
+
+	return count > 0
+}

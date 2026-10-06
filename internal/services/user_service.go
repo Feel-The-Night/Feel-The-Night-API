@@ -33,8 +33,9 @@ func (s *UserService) CreateUser(user *models.User) error {
 	user.RegistrationDate = time.Now()
 	user.EventCount = 0
 	user.GuideCount = 0
-	user.IsModerator = false
-	user.IsVeteran = false
+	user.Roles = []models.Role{
+		{ID: 1},
+	}
 
 	return s.db.Create(user).Error
 }

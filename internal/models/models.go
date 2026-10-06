@@ -6,6 +6,17 @@ import (
 	"gorm.io/gorm"
 )
 
+// Access roles
+type Role struct {
+	ID       int      `gorm:"primaryKey"`
+	Accesses []Access `gorm:"many2many:role_access;"`
+}
+
+type Access struct {
+	AccessID   int `gorm:"primaryKey"`
+	AccessName string
+}
+
 // User table
 type User struct {
 	UserID           uint      `gorm:"primaryKey"`
@@ -16,8 +27,8 @@ type User struct {
 	RegistrationDate time.Time `gorm:"default:CURRENT_DATE"`
 	EventCount       int       `gorm:"default:0"`
 	GuideCount       int       `gorm:"default:0"`
-	IsModerator      bool      `gorm:"default:false"`
-	IsVeteran        bool      `gorm:"default:false"`
+	// IsVeteran   bool   `gorm:"default:false"`
+	// IsModerator bool   `gorm:"default:false"`
 
 	// Campos de auditoria (substituindo gorm.Model)
 	CreatedAt time.Time
@@ -25,6 +36,7 @@ type User struct {
 	DeletedAt gorm.DeletedAt `gorm:"index"`
 
 	// Has many Events and Guides
+	Roles  []Role  `gorm:"many2many:user_role"`
 	Events []Event `gorm:"constraint:OnUpdate:CASCADE"`
 	Guides []Guide `gorm:"constraint:OnUpdate:CASCADE"`
 }
