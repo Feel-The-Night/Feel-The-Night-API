@@ -13,7 +13,12 @@ import (
 )
 
 // SetupRoutes registra todas as rotas da sua API
-func SetupRoutes(userHandler *UserHandler, characterHandler *CharacterHandler, guideHandler *GuideHandler, eventHandler *EventHandler) *gin.Engine {
+func SetupRoutes(
+	userHandler *UserHandler,
+	characterHandler *CharacterHandler,
+	guideHandler *GuideHandler, eventHandler *EventHandler,
+	authHandler *AuthHandler,
+) *gin.Engine {
 	router := gin.Default()
 
 	// Rota do Swagger
@@ -21,6 +26,8 @@ func SetupRoutes(userHandler *UserHandler, characterHandler *CharacterHandler, g
 
 	// Rotas gerais
 	router.GET("/health", HealthCheckHandler)
+	router.POST("/auth/login", authHandler.Login)
+	// router.POST("/refresh")
 
 	// Rotas de Usuários
 	router.POST("/users", userHandler.CreateUser)
@@ -67,7 +74,10 @@ func Setup() *gin.Engine {
 	eventService := services.NewEventService(database.DB)
 	eventHandler := NewEventHandler(eventService)
 
-	return SetupRoutes(userHandler, characterHandler, guideHandler, eventHandler)
+	// Auth
+	authHandler := NewAuthHandler(userService)
+
+	return SetupRoutes(userHandler, characterHandler, guideHandler, eventHandler, authHandler)
 }
 
 func HealthCheckHandler(c *gin.Context) {

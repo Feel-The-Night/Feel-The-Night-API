@@ -6,17 +6,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// Access roles
-type Role struct {
-	ID       int      `gorm:"primaryKey"`
-	Accesses []Access `gorm:"many2many:role_access;"`
-}
-
-type Access struct {
-	AccessID   int `gorm:"primaryKey"`
-	AccessName string
-}
-
 // User table
 type User struct {
 	UserID           uint      `gorm:"primaryKey"`
@@ -123,3 +112,31 @@ type LastEvent struct {
 }
 
 func (LastEvent) TableName() string { return "last_events" }
+
+// Access roles
+type Role struct {
+	ID       int      `gorm:"primaryKey"`
+	Accesses []Access `gorm:"many2many:role_access;"`
+}
+
+type Access struct {
+	AccessID   int `gorm:"primaryKey"`
+	AccessName string
+}
+
+type LoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"senha"`
+}
+
+type TokenResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	TokenType    string `json:"token_type"`
+	ExpiresIn    int64  `json:"expires_in"`
+}
+
+type ErrorReponse struct {
+	Error string `json:"error"`
+	Code  int    `json:"code"`
+}

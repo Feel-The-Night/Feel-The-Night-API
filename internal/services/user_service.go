@@ -103,3 +103,11 @@ func (s *UserService) UpdateUser(id uint, user *models.User) (*models.User, erro
 
 	return existingUser, nil
 }
+
+func (s *UserService) GetUserByEmail(email string) (*models.User, error) {
+	var user models.User
+	if err := s.db.Where("email = ?", email).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
