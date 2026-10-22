@@ -11,6 +11,7 @@ import (
 
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/auth"
 	dto "github.com/kisalto/Feel-The-Night-Swagger/internal/dto"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/models"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/services"
 )
 
@@ -43,7 +44,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		zap.String("path", c.Request.URL.Path),
 	)
 
-	var input dto.LoginInput
+	var input models.LoginRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "email e senha são obrigatórios"})
 		return
@@ -82,7 +83,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.TokenResponse{
+	c.JSON(http.StatusOK, models.TokenResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		TokenType:    "Bearer",
