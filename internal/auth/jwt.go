@@ -182,7 +182,7 @@ func validateAccessToken(tokenString string) (*Claims, error) {
 }
 
 func ValidateRefreshToken(tokenString string) (*RefreshClaims, error) {
-	token, err := parseToken(tokenString, &RefreshClaims{}, audienceAccess)
+	token, err := parseToken(tokenString, &RefreshClaims{}, audienceRefresh)
 	if err != nil {
 		return nil, err
 	}

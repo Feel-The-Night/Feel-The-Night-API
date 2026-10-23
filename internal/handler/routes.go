@@ -25,33 +25,49 @@ func SetupRoutes(
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Rotas gerais
-	router.GET("/health", HealthCheckHandler)
-	router.POST("/auth/login", authHandler.Login)
-	// router.POST("/refresh")
+	general := router.Group("/")
+	{
+		general.GET("/health", HealthCheckHandler)
+		general.POST("/auth/login", authHandler.Login)
+		// router.POST("/refresh")
+	}
 
 	// Rotas de Usuários
-	router.POST("/users", userHandler.CreateUser)
-	router.GET("/users/:id", userHandler.GetUserById)
-	router.DELETE("/users/:id", userHandler.DeleteUserById)
-	router.PATCH("/users/:id", userHandler.UpdateUser)
+	users := router.Group("/users")
+	{
+		users.POST("", userHandler.CreateUser)
+		users.GET("/", userHandler.GetUserByEmail)
+		users.GET("/:id", userHandler.GetUserById)
+		users.DELETE("/:id", userHandler.DeleteUserById)
+		users.PATCH("/:id", userHandler.UpdateUser)
+	}
 
 	// Rotas de Personagens
-	router.POST("/characters", characterHandler.CreateCharacter)
-	router.GET("/characters/:id", characterHandler.GetCharacterById)
-	router.DELETE("/characters/:id", characterHandler.DeleteCharacterById)
-	router.PATCH("/characters/:id", characterHandler.UpdateCharacter)
+	characters := router.Group("/characters")
+	{
+		characters.POST("", characterHandler.CreateCharacter)
+		characters.GET("/:id", characterHandler.GetCharacterById)
+		characters.DELETE("/:id", characterHandler.DeleteCharacterById)
+		characters.PATCH("/:id", characterHandler.UpdateCharacter)
+	}
 
 	// Rotas de Guias
-	router.POST("/guides", guideHandler.CreateGuide)
-	router.GET("/guides/:id", guideHandler.GetGuideById)
-	router.DELETE("/guides/:id", guideHandler.DeleteGuideById)
-	router.PATCH("/guides/:id", guideHandler.UpdateGuide)
+	guides := router.Group("/guides")
+	{
+		guides.POST("", guideHandler.CreateGuide)
+		guides.GET("/:id", guideHandler.GetGuideById)
+		guides.DELETE("/:id", guideHandler.DeleteGuideById)
+		guides.PATCH("/:id", guideHandler.UpdateGuide)
+	}
 
 	// Rotas de Eventos
-	router.POST("/events", eventHandler.CreateEvent)
-	router.GET("/events/:id", eventHandler.GetEventById)
-	router.DELETE("/events/:id", eventHandler.DeleteEventById)
-	router.PATCH("/events/:id", eventHandler.UpdateEvent)
+	events := router.Group("/events")
+	{
+		events.POST("", eventHandler.CreateEvent)
+		events.GET("/:id", eventHandler.GetEventById)
+		events.DELETE("/:id", eventHandler.DeleteEventById)
+		events.PATCH("/:id", eventHandler.UpdateEvent)
+	}
 
 	return router
 }

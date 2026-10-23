@@ -17,6 +17,12 @@ type UserIDInput struct {
 	ID uint `uri:"id" binding:"required,min=1"`
 }
 
+// UserEmailInput valida o body email na requisição.
+// @Title UserEmailInput
+type UserEmailInput struct {
+	Email string `form:"email" binding:"required,email"`
+}
+
 // UpdateUserInput permite atualização parcial de dados do usuário.
 // @Title UpdateUserInput
 type UpdateUserInput struct {

@@ -33,8 +33,8 @@ var dummyHash, _ = bcrypt.GenerateFromPassword([]byte("dummy-password"), bcrypt.
 // @Tags         Auth
 // @Accept       json
 // @Produce      json
-// @Param        body  body      dto.LoginInput  true  "Credenciais"
-// @Success      200   {object}  dto.TokenResponse
+// @Param        body  body      models.LoginRequest  true  "Credenciais"
+// @Success      200   {object}  models.TokenResponse
 // @Failure      400   {object}  dto.ErrorResponse
 // @Failure      401   {object}  dto.ErrorResponse
 // @Router       /auth/login [post]
@@ -46,40 +46,39 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	var input models.LoginRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "email e senha são obrigatórios"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{ErrorName: "email e senha são obrigatórios", Error: err.Error()})
 		return
 	}
 
 	user, err := h.userService.GetUserByEmail(input.Email)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// usuário não existe: roda o bcrypt mesmo assim e falha com a MESMA mensagem
 			_ = bcrypt.CompareHashAndPassword(dummyHash, []byte(input.Password))
-			c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "credenciais inválidas"})
+			c.JSON(http.StatusUnauthorized, dto.ErrorResponse{ErrorName: "credenciais inválidas"})
 			return
 		}
 		// erro de verdade (banco fora, etc.): loga, mas não expõe detalhes
 		zap.L().Error("[AuthHandler] Login: erro ao buscar usuário", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "erro interno"})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{ErrorName: "erro interno", Error: err.Error()})
 		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
-		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "credenciais inválidas"})
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{ErrorName: "credenciais inválidas"})
 		return
 	}
 
 	accessToken, err := auth.GenerateAccessToken(int64(user.UserID), user.Email, user.Nickname)
 	if err != nil {
 		zap.L().Error("[AuthHandler] Login: erro ao gerar access token", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "erro interno"})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{ErrorName: "erro interno", Error: err.Error()})
 		return
 	}
 
 	refreshToken, err := auth.GenerateRefreshToken(int64(user.UserID))
 	if err != nil {
 		zap.L().Error("[AuthHandler] Login: erro ao gerar refresh token", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "erro interno"})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{ErrorName: "erro interno", Error: err.Error()})
 		return
 	}
 

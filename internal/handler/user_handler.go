@@ -72,7 +72,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 // @Summary      Buscar usuário por ID
 // @Tags         User
 // @Produce      json
-// @Param        id   path      int  true  "ID do usuário" minimum(1)
+// @Param        id   path      dto.UserIDInput  true  "ID do usuário" minimum(1)
 // @Success      200  {object}  dto.UserResponse
 // @Router       /users/{id} [get]
 func (h *UserHandler) GetUserById(c *gin.Context) {
@@ -89,6 +89,49 @@ func (h *UserHandler) GetUserById(c *gin.Context) {
 	}
 
 	user, err := h.userService.GetUserById(input.ID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "usuário não encontrado"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	response := dto.UserResponse{
+		UserID:           user.UserID,
+		Nickname:         user.Nickname,
+		Email:            user.Email,
+		DiscordID:        user.DiscordID,
+		RegistrationDate: user.RegistrationDate,
+		EventCount:       user.EventCount,
+		GuideCount:       user.GuideCount,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// GetUserByEmail godoc
+// @Summary      Buscar usuário por email
+// @Tags         User
+// @Produce      json
+// @Param        email  query     string  true  "Email do usuário"
+// @Success      200    {object}  dto.UserResponse
+// @Failure      400    {object}  dto.ErrorResponse
+// @Router       /users [get]
+func (h *UserHandler) GetUserByEmail(c *gin.Context) {
+	zap.L().Info("[UserHandler] GetUserByEmail",
+		zap.String("method", c.Request.Method),
+		zap.String("path", c.Request.URL.Path),
+	)
+
+	var input dto.UserEmailInput
+	if err := c.ShouldBindQuery(&input); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "email inválido"})
+		return
+	}
+
+	user, err := h.userService.GetUserByEmail(input.Email)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "usuário não encontrado"})

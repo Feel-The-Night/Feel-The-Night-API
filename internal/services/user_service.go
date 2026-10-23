@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/models"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -29,6 +30,12 @@ func (s *UserService) CreateUser(user *models.User) error {
 	if err := s.db.Where("email = ?", user.Email).First(&existingUser).Error; err == nil {
 		return errors.New("Email ja cadastrado")
 	}
+
+	hashed, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return errors.New("Erro ao criar usuário: " + err.Error())
+	}
+	user.Password = string(hashed)
 
 	user.RegistrationDate = time.Now()
 	user.EventCount = 0

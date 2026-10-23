@@ -12,7 +12,7 @@ type User struct {
 	Nickname         string    `gorm:"size:30;not null"`
 	Email            string    `gorm:"size:50;not null"`
 	DiscordID        string    `gorm:"size:25"`
-	Password         string    `gorm:"size:30;not null"`
+	Password         string    `gorm:"size:100;not null"`
 	RegistrationDate time.Time `gorm:"default:CURRENT_DATE"`
 	EventCount       int       `gorm:"default:0"`
 	GuideCount       int       `gorm:"default:0"`

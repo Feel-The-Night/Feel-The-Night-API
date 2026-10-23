@@ -30,6 +30,11 @@ func main() {
 		zap.L().Warn("Arquivo .env não encontrado, lendo variáveis de ambiente do sistema.")
 	}
 
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		zap.L().Fatal("JWT_SECRET não configurado")
+	}
+
 	// 1. Tratamento da Porta
 	port := os.Getenv("PORT")
 	if port == "" {
