@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
@@ -18,6 +19,9 @@ import (
 // @version         1.0
 // @description     API para gerenciamento de guias, eventos e personagens.
 // @BasePath        /
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 func main() {
 	logger, err := zap.NewProduction()
 	if err != nil {
@@ -34,6 +38,10 @@ func main() {
 	if secret == "" {
 		zap.L().Fatal("JWT_SECRET não configurado")
 	}
+
+	// if len(secret) < 32 {
+	// 	zap.L().Fatal("JWT_SECRET precisa ter pelo menos 32 caracteres")
+	// }
 
 	// 1. Tratamento da Porta
 	port := os.Getenv("PORT")
@@ -70,7 +78,20 @@ func main() {
 	serverPort := fmt.Sprintf(":%s", port)
 	zap.L().Info("Servidor rodando na porta", zap.String("port", serverPort))
 
-	if err := http.ListenAndServe(serverPort, routes); err != nil {
+	srv := &http.Server{
+		Addr:              serverPort,
+		Handler:           routes,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		zap.L().Fatal("Erro ao iniciar o servidor", zap.Error(err))
 	}
+
+	// if err := http.ListenAndServe(serverPort, routes); err != nil {
+	// 	zap.L().Fatal("Erro ao iniciar o servidor", zap.Error(err))
+	// }
 }

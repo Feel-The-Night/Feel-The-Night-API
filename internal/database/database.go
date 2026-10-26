@@ -41,6 +41,7 @@ func Connect() error {
 		DSN:                  dsn,
 		PreferSimpleProtocol: true,
 	}), &gorm.Config{
+		TranslateError:                           true,
 		DisableForeignKeyConstraintWhenMigrating: true,
 	})
 	if err != nil {

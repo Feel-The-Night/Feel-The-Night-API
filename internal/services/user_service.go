@@ -17,6 +17,8 @@ func NewUserService(db *gorm.DB) *UserService {
 	return &UserService{db: db}
 }
 
+var ErrNoUpdateData = errors.New("nenhum dado recebido para atualização")
+
 // Change it so userID, registrationDate, isModerator, isVeteran, eventCount and guideCount
 // cant be passed througth the createUser post.
 // userID will be added automaticaly  by the DB
@@ -37,12 +39,10 @@ func (s *UserService) CreateUser(user *models.User) error {
 	}
 	user.Password = string(hashed)
 
-	user.RegistrationDate = time.Now()
+	user.CreatedAt = time.Now()
 	user.EventCount = 0
 	user.GuideCount = 0
-	user.Roles = []models.Role{
-		{ID: 1},
-	}
+	user.Role = models.RoleBeginner
 
 	return s.db.Create(user).Error
 }

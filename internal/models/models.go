@@ -6,16 +6,24 @@ import (
 	"gorm.io/gorm"
 )
 
+type Role string
+
+const (
+	RoleBeginner Role = "iniciante"
+	RoleVeteran  Role = "veterano"
+	RoleAdmin    Role = "admin"
+)
+
 // User table
 type User struct {
-	UserID           uint      `gorm:"primaryKey"`
-	Nickname         string    `gorm:"size:30;not null"`
-	Email            string    `gorm:"size:50;not null"`
-	DiscordID        string    `gorm:"size:25"`
-	Password         string    `gorm:"size:100;not null"`
-	RegistrationDate time.Time `gorm:"default:CURRENT_DATE"`
-	EventCount       int       `gorm:"default:0"`
-	GuideCount       int       `gorm:"default:0"`
+	UserID     uint   `gorm:"primaryKey"`
+	Nickname   string `gorm:"size:30;not null"`
+	Email      string `gorm:"size:254;not null;unique:idx_users_email,where:deleted_at IS NULL"`
+	DiscordID  string `gorm:"size:25"`
+	Password   string `gorm:"size:100;not null" json:"-"`
+	EventCount int    `gorm:"default:0"`
+	GuideCount int    `gorm:"default:0"`
+	//RegistrationDate time.Time `gorm:"default:CURRENT_DATE"`
 	// IsVeteran   bool   `gorm:"default:false"`
 	// IsModerator bool   `gorm:"default:false"`
 
@@ -25,7 +33,7 @@ type User struct {
 	DeletedAt gorm.DeletedAt `gorm:"index"`
 
 	// Has many Events and Guides
-	Roles  []Role  `gorm:"many2many:user_role"`
+	Role   Role    `gorm:"type:varchar(15);not null;default:'iniciante';index;check:chk_users_role,role IN ('iniciante','veterano','admin')"`
 	Events []Event `gorm:"constraint:OnUpdate:CASCADE"`
 	Guides []Guide `gorm:"constraint:OnUpdate:CASCADE"`
 }
@@ -52,15 +60,15 @@ func (Character) TableName() string { return "characters" }
 
 // Guide table
 type Guide struct {
-	GuideID      uint      `gorm:"primaryKey"`
-	Title        string    `gorm:"size:20;not null"`
-	BannerURL    string    `gorm:"size:255"`
-	Type         string    `gorm:"size:15"`
-	Description  string    `gorm:"size:50;not null"`
-	Link         string    `gorm:"size:2083"`
-	CreationDate time.Time `gorm:"default:CURRENT_DATE"`
-	Likes        int       `gorm:"default:0"`
-	Dislikes     int       `gorm:"default:0"`
+	GuideID     uint   `gorm:"primaryKey"`
+	Title       string `gorm:"size:254;not null"`
+	BannerURL   string `gorm:"size:255"`
+	Type        string `gorm:"size:15"`
+	Description string `gorm:"size:2083;not null"`
+	Link        string `gorm:"size:2083"`
+	Likes       int    `gorm:"default:0"`
+	Dislikes    int    `gorm:"default:0"`
+	//CreationDate time.Time `gorm:"default:CURRENT_DATE"`
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -114,29 +122,13 @@ type LastEvent struct {
 func (LastEvent) TableName() string { return "last_events" }
 
 // Access roles
-type Role struct {
-	ID       int      `gorm:"primaryKey"`
-	Accesses []Access `gorm:"many2many:role_access;"`
-}
+// type Role struct {
+// 	ID       int      `gorm:"primaryKey"`
+// 	Name     string   `gorm:"size:50;not null;unique"`
+// 	Accesses []Access `gorm:"many2many:role_access;"`
+// }
 
 type Access struct {
 	AccessID   int `gorm:"primaryKey"`
 	AccessName string
-}
-
-type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"senha"`
-}
-
-type TokenResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	TokenType    string `json:"token_type"`
-	ExpiresIn    int64  `json:"expires_in"`
-}
-
-type ErrorReponse struct {
-	Error string `json:"error"`
-	Code  int    `json:"code"`
 }

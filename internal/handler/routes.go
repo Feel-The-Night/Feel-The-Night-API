@@ -9,6 +9,8 @@ import (
 
 	_ "github.com/kisalto/Feel-The-Night-Swagger/docs"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/database"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/middleware"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/models"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/services"
 )
 
@@ -16,12 +18,18 @@ import (
 func SetupRoutes(
 	userHandler *UserHandler,
 	characterHandler *CharacterHandler,
-	guideHandler *GuideHandler, eventHandler *EventHandler,
+	guideHandler *GuideHandler,
+	eventHandler *EventHandler,
 	authHandler *AuthHandler,
 ) *gin.Engine {
 	router := gin.Default()
 
-	// Rota do Swagger
+	// Permissions Middleware
+	logged := middleware.RequireAuth()
+	creators := middleware.RequireRole(models.RoleVeteran, models.RoleAdmin)
+	admin := middleware.RequireRole(models.RoleAdmin)
+
+	// Swagger routes
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Rotas gerais
@@ -36,37 +44,38 @@ func SetupRoutes(
 	users := router.Group("/users")
 	{
 		users.POST("", userHandler.CreateUser)
-		users.GET("/", userHandler.GetUserByEmail)
+		users.GET("", logged, admin, userHandler.GetUserByEmail)
+		// GetUserByID vai desaparecer, mas fica ai por enquanto
 		users.GET("/:id", userHandler.GetUserById)
-		users.DELETE("/:id", userHandler.DeleteUserById)
-		users.PATCH("/:id", userHandler.UpdateUser)
+		users.PATCH("/:id", logged, userHandler.UpdateUser)
+		users.DELETE("/:id", logged, admin, userHandler.DeleteUserById)
 	}
 
 	// Rotas de Personagens
 	characters := router.Group("/characters")
 	{
-		characters.POST("", characterHandler.CreateCharacter)
+		characters.POST("", logged, creators, characterHandler.CreateCharacter)
 		characters.GET("/:id", characterHandler.GetCharacterById)
-		characters.DELETE("/:id", characterHandler.DeleteCharacterById)
-		characters.PATCH("/:id", characterHandler.UpdateCharacter)
+		characters.PATCH("/:id", logged, creators, characterHandler.UpdateCharacter)
+		characters.DELETE("/:id", logged, admin, characterHandler.DeleteCharacterById)
 	}
 
 	// Rotas de Guias
 	guides := router.Group("/guides")
 	{
-		guides.POST("", guideHandler.CreateGuide)
+		guides.POST("", logged, creators, guideHandler.CreateGuide)
 		guides.GET("/:id", guideHandler.GetGuideById)
-		guides.DELETE("/:id", guideHandler.DeleteGuideById)
-		guides.PATCH("/:id", guideHandler.UpdateGuide)
+		guides.PATCH("/:id", logged, creators, guideHandler.UpdateGuide)
+		guides.DELETE("/:id", logged, admin, guideHandler.DeleteGuideById)
 	}
 
 	// Rotas de Eventos
 	events := router.Group("/events")
 	{
-		events.POST("", eventHandler.CreateEvent)
+		events.POST("", logged, creators, eventHandler.CreateEvent)
 		events.GET("/:id", eventHandler.GetEventById)
-		events.DELETE("/:id", eventHandler.DeleteEventById)
-		events.PATCH("/:id", eventHandler.UpdateEvent)
+		events.PATCH("/:id", logged, creators, eventHandler.UpdateEvent)
+		events.DELETE("/:id", logged, admin, eventHandler.DeleteEventById)
 	}
 
 	return router

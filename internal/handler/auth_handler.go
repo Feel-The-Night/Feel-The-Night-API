@@ -11,7 +11,6 @@ import (
 
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/auth"
 	dto "github.com/kisalto/Feel-The-Night-Swagger/internal/dto"
-	"github.com/kisalto/Feel-The-Night-Swagger/internal/models"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/services"
 )
 
@@ -33,8 +32,8 @@ var dummyHash, _ = bcrypt.GenerateFromPassword([]byte("dummy-password"), bcrypt.
 // @Tags         Auth
 // @Accept       json
 // @Produce      json
-// @Param        body  body      models.LoginRequest  true  "Credenciais"
-// @Success      200   {object}  models.TokenResponse
+// @Param        body  body      dto.LoginRequest  true  "Credenciais"
+// @Success      200   {object}  dto.TokenResponse
 // @Failure      400   {object}  dto.ErrorResponse
 // @Failure      401   {object}  dto.ErrorResponse
 // @Router       /auth/login [post]
@@ -44,7 +43,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		zap.String("path", c.Request.URL.Path),
 	)
 
-	var input models.LoginRequest
+	var input dto.LoginRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{ErrorName: "email e senha são obrigatórios", Error: err.Error()})
 		return
@@ -68,7 +67,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	accessToken, err := auth.GenerateAccessToken(int64(user.UserID), user.Email, user.Nickname)
+	accessToken, err := auth.GenerateAccessToken(int64(user.UserID), user.Email, user.Nickname, string(user.Role))
 	if err != nil {
 		zap.L().Error("[AuthHandler] Login: erro ao gerar access token", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{ErrorName: "erro interno", Error: err.Error()})
@@ -82,7 +81,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, models.TokenResponse{
+	c.JSON(http.StatusOK, dto.TokenResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		TokenType:    "Bearer",

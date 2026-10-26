@@ -16,6 +16,7 @@ type Claims struct {
 	UserID int64  `json:"user_id"`
 	Email  string `json:"email"`
 	Name   string `json:"name"`
+	Role   string `json:"role"`
 	jwt.RegisteredClaims
 }
 
@@ -57,7 +58,7 @@ func newTokenID() (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
-func GenerateAccessToken(userID int64, email string, name string) (string, error) {
+func GenerateAccessToken(userID int64, email string, Nickname string, role string) (string, error) {
 	secret, err := getSecret()
 	if err != nil {
 		return "", err
@@ -68,7 +69,8 @@ func GenerateAccessToken(userID int64, email string, name string) (string, error
 	claims := Claims{
 		UserID: userID,
 		Email:  email,
-		Name:   name,
+		Name:   Nickname,
+		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			// Emissor
 			Issuer: issuer,
@@ -166,7 +168,7 @@ func parseToken(tokenString string, claims jwt.Claims, audience string) (*jwt.To
 
 }
 
-func validateAccessToken(tokenString string) (*Claims, error) {
+func ValidateAccessToken(tokenString string) (*Claims, error) {
 	token, err := parseToken(tokenString, &Claims{}, audienceAccess)
 	if err != nil {
 		return nil, err

@@ -18,7 +18,7 @@ func NewGuideService(db *gorm.DB) *GuideService {
 
 func (s *GuideService) CreateGuide(guide *models.Guide) error {
 
-	guide.CreationDate = time.Now()
+	guide.CreatedAt = time.Now()
 	guide.Likes = 0
 	guide.Dislikes = 0
 

@@ -43,3 +43,14 @@ type UserResponse struct {
 	EventCount       int       `json:"event_count"`
 	GuideCount       int       `json:"guide_count"`
 }
+
+// PublicUserResponse representa a resposta pública do usuário (sem a senha).
+// @Title PublicUserResponse
+type PublicUserResponse struct {
+	UserID           uint      `json:"user_id"`
+	Nickname         string    `json:"nickname"`
+	DiscordID        string    `json:"discord_id,omitempty"`
+	RegistrationDate time.Time `json:"registration_date"`
+	EventCount       int       `json:"event_count"`
+	GuideCount       int       `json:"guide_count"`
+}
