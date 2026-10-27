@@ -8,7 +8,7 @@ type CreateUserInput struct {
 	Nickname  string `json:"nickname" binding:"required,min=3,max=30"`
 	Email     string `json:"email" binding:"required,email"`
 	DiscordID string `json:"discord_id"`
-	Password  string `json:"password" binding:"required,min=6"`
+	Password  string `json:"password" binding:"required,min=6,max=72"`
 }
 
 // UserIDInput valida o parâmetro :id na URL.
@@ -29,7 +29,7 @@ type UpdateUserInput struct {
 	Nickname  string `json:"nickname" binding:"omitempty,min=3,max=30"`
 	Email     string `json:"email" binding:"omitempty,email"`
 	DiscordID string `json:"discord_id"`
-	Password  string `json:"password" binding:"omitempty,min=6"`
+	Password  string `json:"password" binding:"omitempty,min=6,max=72"`
 }
 
 // UserResponse representa a resposta pública do usuário (sem a senha).

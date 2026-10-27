@@ -49,7 +49,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	user, err := h.userService.GetUserByEmail(input.Email)
+	user, err := h.userService.GetUserByEmail(c.Request.Context(), input.Email)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			_ = bcrypt.CompareHashAndPassword(dummyHash, []byte(input.Password))

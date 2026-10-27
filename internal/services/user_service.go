@@ -1,12 +1,19 @@
 package services
 
 import (
+	"context"
 	"errors"
-	"time"
+	"fmt"
+	"strings"
 
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/models"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+)
+
+var (
+	ErrNoUpdateData = errors.New("nenhum dado recebido para atualização")
+	ErrEmailTaken   = errors.New("email já cadastrado")
 )
 
 type UserService struct {
@@ -17,72 +24,95 @@ func NewUserService(db *gorm.DB) *UserService {
 	return &UserService{db: db}
 }
 
-var ErrNoUpdateData = errors.New("nenhum dado recebido para atualização")
-
-// Change it so userID, registrationDate, isModerator, isVeteran, eventCount and guideCount
-// cant be passed througth the createUser post.
-// userID will be added automaticaly  by the DB
-// registrationDate will get date.now
-// isModerator will always be False
-// isVeteran will always be false
-// eventCount and guideCount will be 0 when creating account
-func (s *UserService) CreateUser(user *models.User) error {
-	var existingUser models.User
-
-	if err := s.db.Where("email = ?", user.Email).First(&existingUser).Error; err == nil {
-		return errors.New("Email ja cadastrado")
-	}
-
-	hashed, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return errors.New("Erro ao criar usuário: " + err.Error())
-	}
-	user.Password = string(hashed)
-
-	user.CreatedAt = time.Now()
-	user.EventCount = 0
-	user.GuideCount = 0
-	user.Role = models.RoleBeginner
-
-	return s.db.Create(user).Error
+func normalizeEmail(email string) string {
+	return strings.ToLower(strings.TrimSpace(email))
 }
 
-func (s *UserService) GetUserById(id uint) (*models.User, error) {
-	var user models.User
-	if err := s.db.First(&user, id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, err
+func hashPassword(password string) (string, error) {
+	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", fmt.Errorf("erro ao gerar hash da senha: %w", err)
+	}
+	return string(hashed), nil
+}
+
+// emailTaken verifica se o email já é usado por outro usuário (exceto exceptID).
+func (s *UserService) emailTaken(ctx context.Context, email string, exceptID uint) (bool, error) {
+	var count int64
+	err := s.db.WithContext(ctx).
+		Model(&models.User{}).
+		Where("email = ? AND user_id <> ?", email, exceptID).
+		Count(&count).Error
+	return count > 0, err
+}
+
+// CreateUser cria um usuário novo.
+// O cliente só controla nickname, email, discord_id e senha:
+// ID, role, contadores e datas são sempre definidos aqui ou pelo banco.
+func (s *UserService) CreateUser(ctx context.Context, user *models.User) error {
+	user.Email = normalizeEmail(user.Email)
+
+	taken, err := s.emailTaken(ctx, user.Email, 0)
+	if err != nil {
+		return err
+	}
+	if taken {
+		return ErrEmailTaken
+	}
+
+	hashed, err := hashPassword(user.Password)
+	if err != nil {
+		return err
+	}
+	user.Password = hashed
+
+	user.Role = models.RoleBeginner
+	user.EventCount = 0
+	user.GuideCount = 0
+
+	if err := s.db.WithContext(ctx).Create(user).Error; err != nil {
+		// corrida: dois cadastros simultâneos passaram pela checagem
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return ErrEmailTaken
 		}
+		return err
+	}
+	return nil
+}
+
+func (s *UserService) GetUserById(ctx context.Context, id uint) (*models.User, error) {
+	var user models.User
+	if err := s.db.WithContext(ctx).First(&user, id).Error; err != nil {
 		return nil, err
 	}
 	return &user, nil
 }
 
-func (s *UserService) DeleteUserById(id uint) error {
-	result := s.db.Delete(&models.User{UserID: id})
+func (s *UserService) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+	var user models.User
+	if err := s.db.WithContext(ctx).
+		Where("email = ?", normalizeEmail(email)).
+		First(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (s *UserService) DeleteUserById(ctx context.Context, id uint) error {
+	result := s.db.WithContext(ctx).Delete(&models.User{}, id)
 	if result.Error != nil {
 		return result.Error
 	}
-
 	if result.RowsAffected == 0 {
 		return gorm.ErrRecordNotFound
 	}
-
 	return nil
 }
 
-func (s *UserService) UpdateUser(id uint, user *models.User) (*models.User, error) {
-	existingUser, err := s.GetUserById(id)
+func (s *UserService) UpdateUser(ctx context.Context, id uint, user *models.User) (*models.User, error) {
+	existingUser, err := s.GetUserById(ctx, id)
 	if err != nil {
 		return nil, err
-	}
-
-	if user.Email != "" && user.Email != existingUser.Email {
-		var checkEmail models.User
-		err := s.db.Where("email = ? AND user_id != ?", user.Email, id).First(&checkEmail).Error
-		if err == nil {
-			return nil, errors.New("email já cadastrado por outro usuário")
-		}
 	}
 
 	updates := make(map[string]any)
@@ -90,31 +120,42 @@ func (s *UserService) UpdateUser(id uint, user *models.User) (*models.User, erro
 	if user.Nickname != "" {
 		updates["nickname"] = user.Nickname
 	}
-	if user.Email != "" {
-		updates["email"] = user.Email
-	}
 	if user.DiscordID != "" {
 		updates["discord_id"] = user.DiscordID
 	}
+
+	if user.Email != "" {
+		email := normalizeEmail(user.Email)
+		if email != existingUser.Email {
+			taken, err := s.emailTaken(ctx, email, id)
+			if err != nil {
+				return nil, err
+			}
+			if taken {
+				return nil, ErrEmailTaken
+			}
+			updates["email"] = email
+		}
+	}
+
 	if user.Password != "" {
-		updates["password"] = user.Password
+		hashed, err := hashPassword(user.Password)
+		if err != nil {
+			return nil, err
+		}
+		updates["password"] = hashed
 	}
 
 	if len(updates) == 0 {
-		return existingUser, nil
+		return nil, ErrNoUpdateData
 	}
 
-	if err := s.db.Model(existingUser).Updates(updates).Error; err != nil {
+	if err := s.db.WithContext(ctx).Model(existingUser).Updates(updates).Error; err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return nil, ErrEmailTaken
+		}
 		return nil, err
 	}
 
 	return existingUser, nil
-}
-
-func (s *UserService) GetUserByEmail(email string) (*models.User, error) {
-	var user models.User
-	if err := s.db.Where("email = ?", email).First(&user).Error; err != nil {
-		return nil, err
-	}
-	return &user, nil
 }

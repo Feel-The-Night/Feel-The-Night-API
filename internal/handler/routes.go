@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -23,6 +24,8 @@ func SetupRoutes(
 	authHandler *AuthHandler,
 ) *gin.Engine {
 	router := gin.Default()
+
+	router.Use(middleware.Timeout(10 * time.Second))
 
 	// Permissions Middleware
 	logged := middleware.RequireAuth()

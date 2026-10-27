@@ -49,8 +49,8 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		Password:  input.Password, // o service faz o hash
 	}
 
-	if err := h.userService.CreateUser(&user); err != nil {
-		if errors.Is(err, gorm.ErrDuplicatedKey) {
+	if err := h.userService.CreateUser(c.Request.Context(), &user); err != nil {
+		if errors.Is(err, services.ErrEmailTaken) {
 			c.JSON(http.StatusConflict, dto.ErrorResponse{Error: "email já cadastrado"})
 			return
 		}
@@ -80,7 +80,7 @@ func (h *UserHandler) GetUserById(c *gin.Context) {
 		return
 	}
 
-	user, err := h.userService.GetUserById(input.ID)
+	user, err := h.userService.GetUserById(c.Request.Context(), input.ID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "usuário não encontrado"})
@@ -111,7 +111,7 @@ func (h *UserHandler) GetUserByEmail(c *gin.Context) {
 		return
 	}
 
-	user, err := h.userService.GetUserByEmail(input.Email)
+	user, err := h.userService.GetUserByEmail(c.Request.Context(), input.Email)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "usuário não encontrado"})
@@ -142,7 +142,7 @@ func (h *UserHandler) DeleteUserById(c *gin.Context) {
 		return
 	}
 
-	if err := h.userService.DeleteUserById(input.ID); err != nil {
+	if err := h.userService.DeleteUserById(c.Request.Context(), input.ID); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "usuário não encontrado"})
 			return
@@ -199,14 +199,14 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		Password:  bodyInput.Password, // o service faz o hash se vier preenchida
 	}
 
-	updatedUser, err := h.userService.UpdateUser(uriInput.ID, &userModel)
+	updatedUser, err := h.userService.UpdateUser(c.Request.Context(), uriInput.ID, &userModel)
 	if err != nil {
 		switch {
 		case errors.Is(err, gorm.ErrRecordNotFound):
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "usuário não encontrado"})
 		case errors.Is(err, services.ErrNoUpdateData):
 			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
-		case errors.Is(err, gorm.ErrDuplicatedKey):
+		case errors.Is(err, services.ErrEmailTaken):
 			c.JSON(http.StatusConflict, dto.ErrorResponse{Error: "email já cadastrado"})
 		default:
 			internalError(c, "User", "UpdateUser", err)

@@ -50,26 +50,12 @@ func (h *GuideHandler) CreateGuide(c *gin.Context) {
 		CharacterID: input.CharacterID,
 	}
 
-	if err := h.guideService.CreateGuide(&guide); err != nil {
+	if err := h.guideService.CreateGuide(c.Request.Context(), &guide); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
 		return
 	}
 
-	response := dto.GuideResponse{
-		GuideID:      guide.GuideID,
-		Title:        guide.Title,
-		BannerURL:    guide.BannerURL,
-		Type:         guide.Type,
-		Description:  guide.Description,
-		Link:         guide.Link,
-		CreationDate: guide.CreatedAt,
-		Likes:        guide.Likes,
-		Dislikes:     guide.Dislikes,
-		UserID:       guide.UserID,
-		CharacterID:  guide.CharacterID,
-	}
-
-	c.JSON(http.StatusCreated, response)
+	c.JSON(http.StatusCreated, toGuideResponse(&guide))
 }
 
 // GetGuideById godoc
@@ -89,31 +75,17 @@ func (h *GuideHandler) GetGuideById(c *gin.Context) {
 		return
 	}
 
-	guide, err := h.guideService.GetGuideById(input.ID)
+	guide, err := h.guideService.GetGuideById(c.Request.Context(), input.ID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "guia não encontrado"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: err.Error()})
+		internalError(c, "Guide", "GetGuideById", err)
 		return
 	}
 
-	response := dto.GuideResponse{
-		GuideID:      guide.GuideID,
-		Title:        guide.Title,
-		BannerURL:    guide.BannerURL,
-		Type:         guide.Type,
-		Description:  guide.Description,
-		Link:         guide.Link,
-		CreationDate: guide.CreatedAt,
-		Likes:        guide.Likes,
-		Dislikes:     guide.Dislikes,
-		UserID:       guide.UserID,
-		CharacterID:  guide.CharacterID,
-	}
-
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, toGuideResponse(guide))
 }
 
 // DeleteGuideById godoc
@@ -134,12 +106,12 @@ func (h *GuideHandler) DeleteGuideById(c *gin.Context) {
 		return
 	}
 
-	if err := h.guideService.DeleteGuideById(input.ID); err != nil {
+	if err := h.guideService.DeleteGuideById(c.Request.Context(), input.ID); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "guia não encontrado"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: err.Error()})
+		internalError(c, "Guide", "DeleteGuideById", err)
 		return
 	}
 
@@ -180,7 +152,7 @@ func (h *GuideHandler) UpdateGuide(c *gin.Context) {
 		Link:        bodyInput.Link,
 	}
 
-	updatedGuide, err := h.guideService.UpdateGuide(uriInput.ID, &guideModel)
+	updatedGuide, err := h.guideService.UpdateGuide(c.Request.Context(), uriInput.ID, &guideModel)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "guia não encontrado"})
@@ -190,25 +162,11 @@ func (h *GuideHandler) UpdateGuide(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: err.Error()})
+		internalError(c, "Guide", "UpdateGuide", err)
 		return
 	}
 
-	response := dto.GuideResponse{
-		GuideID:      updatedGuide.GuideID,
-		Title:        updatedGuide.Title,
-		BannerURL:    updatedGuide.BannerURL,
-		Type:         updatedGuide.Type,
-		Description:  updatedGuide.Description,
-		Link:         updatedGuide.Link,
-		CreationDate: updatedGuide.CreatedAt,
-		Likes:        updatedGuide.Likes,
-		Dislikes:     updatedGuide.Dislikes,
-		UserID:       updatedGuide.UserID,
-		CharacterID:  updatedGuide.CharacterID,
-	}
-
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, toGuideResponse(updatedGuide))
 }
 
 // GetGuides godoc
@@ -231,7 +189,7 @@ func (h *GuideHandler) GetGuides(c *gin.Context) {
 		return
 	}
 
-	guides, total, err := h.guideService.GetGuides(strings.TrimSpace(query.Title), query.Page, query.Limit)
+	guides, total, err := h.guideService.GetGuides(c.Request.Context(), strings.TrimSpace(query.Title), query.Page, query.Limit)
 	if err != nil {
 		internalError(c, "Guide", "GetGuides", err)
 		return

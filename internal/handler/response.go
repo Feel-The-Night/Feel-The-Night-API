@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"context"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -19,6 +21,11 @@ func logRequest(c *gin.Context, handler string, action string) {
 
 // internalError loga o erro real e devolve uma mensagem genérica ao cliente.
 func internalError(c *gin.Context, handler string, action string, err error) {
+	if errors.Is(err, context.DeadlineExceeded) {
+		zap.L().Warn("timeout", zap.String("handler", handler), zap.String("action", action))
+		c.JSON(http.StatusGatewayTimeout, dto.ErrorResponse{Error: "tempo de resposta esgotado"})
+		return
+	}
 	zap.L().Error("internal error",
 		zap.String("handler", handler),
 		zap.String("action", action),
