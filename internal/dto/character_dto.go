@@ -33,3 +33,11 @@ type CharacterResponse struct {
 	ImageURL    string `json:"image_url,omitempty"`
 	Type        string `json:"type"`
 }
+
+// CharacterListQuery são os filtros e a paginação de GET /events.
+type CharacterListQuery struct {
+	Name     string `form:"name" binding:"omitempty,max=100"`
+	Upcoming bool   `form:"upcoming"`
+	Page     int    `form:"page,default=1" binding:"min=1"`
+	Limit    int    `form:"limit,default=20" binding:"min=1,max=100"`
+}

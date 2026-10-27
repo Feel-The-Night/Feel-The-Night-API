@@ -11,11 +11,6 @@ import (
 	"gorm.io/gorm"
 )
 
-var (
-	ErrNoUpdateData = errors.New("nenhum dado recebido para atualização")
-	ErrEmailTaken   = errors.New("email já cadastrado")
-)
-
 type UserService struct {
 	db *gorm.DB
 }

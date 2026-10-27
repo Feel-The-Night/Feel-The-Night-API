@@ -58,6 +58,7 @@ func SetupRoutes(
 	characters := router.Group("/characters")
 	{
 		characters.POST("", logged, creators, characterHandler.CreateCharacter)
+		characters.GET("", characterHandler.GetCharacters)
 		characters.GET("/:id", characterHandler.GetCharacterById)
 		characters.PATCH("/:id", logged, creators, characterHandler.UpdateCharacter)
 		characters.DELETE("/:id", logged, admin, characterHandler.DeleteCharacterById)
@@ -77,6 +78,7 @@ func SetupRoutes(
 	events := router.Group("/events")
 	{
 		events.POST("", logged, creators, eventHandler.CreateEvent)
+		events.GET("", eventHandler.GetEvents)
 		events.GET("/:id", eventHandler.GetEventById)
 		events.PATCH("/:id", logged, creators, eventHandler.UpdateEvent)
 		events.DELETE("/:id", logged, admin, eventHandler.DeleteEventById)

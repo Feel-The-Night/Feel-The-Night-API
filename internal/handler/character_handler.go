@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 	"gorm.io/gorm"
 
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/dto"
@@ -27,14 +26,12 @@ func NewCharacterHandler(characterService *services.CharacterService) *Character
 // @Tags         Character
 // @Accept       json
 // @Produce      json
+// @Security     BearerAuth
 // @Param        character  body      dto.CreateCharacterInput  true  "Dados do Personagem"
 // @Success      201        {object}  dto.CharacterResponse
 // @Router       /characters [post]
 func (h *CharacterHandler) CreateCharacter(c *gin.Context) {
-	zap.L().Info("[CharacterHandler] CreateCharacter",
-		zap.String("method", c.Request.Method),
-		zap.String("path", c.Request.URL.Path),
-	)
+	logRequest(c, "Character", "CreateCharacter")
 
 	var input dto.CreateCharacterInput
 
@@ -50,20 +47,16 @@ func (h *CharacterHandler) CreateCharacter(c *gin.Context) {
 		Type:        input.Type,
 	}
 
-	if err := h.characterService.CreateCharacter(&character); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
+	if err := h.characterService.CreateCharacter(c.Request.Context(), &character); err != nil {
+		if errors.Is(err, services.ErrCharacterExists) {
+			c.JSON(http.StatusConflict, dto.ErrorResponse{Error: err.Error()})
+			return
+		}
+		internalError(c, "Character", "CreateCharacter", err)
 		return
 	}
 
-	response := dto.CharacterResponse{
-		CharacterID: character.CharacterID,
-		Name:        character.Name,
-		Description: character.Description,
-		Type:        character.Type,
-		ImageURL:    character.ImageURL,
-	}
-
-	c.JSON(http.StatusCreated, response)
+	c.JSON(http.StatusCreated, toCharacterResponse(&character))
 }
 
 // GetCharacterById godoc
@@ -74,10 +67,7 @@ func (h *CharacterHandler) CreateCharacter(c *gin.Context) {
 // @Success      200  {object}  dto.CharacterResponse
 // @Router       /characters/{id} [get]
 func (h *CharacterHandler) GetCharacterById(c *gin.Context) {
-	zap.L().Info("[CharacterHandler] GetCharacterById",
-		zap.String("method", c.Request.Method),
-		zap.String("path", c.Request.URL.Path),
-	)
+	logRequest(c, "Character", "GetCharacterById")
 
 	var input dto.CharacterIDInput
 
@@ -86,39 +76,29 @@ func (h *CharacterHandler) GetCharacterById(c *gin.Context) {
 		return
 	}
 
-	character, err := h.characterService.GetCharacterById(input.ID)
+	character, err := h.characterService.GetCharacterById(c.Request.Context(), input.ID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "personagem não encontrado"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: err.Error()})
+		internalError(c, "Character", "GetCharacterById", err)
 		return
 	}
 
-	response := dto.CharacterResponse{
-		CharacterID: character.CharacterID,
-		Name:        character.Name,
-		Description: character.Description,
-		Type:        character.Type,
-		ImageURL:    character.ImageURL,
-	}
-
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, toCharacterResponse(character))
 }
 
 // DeleteCharacterById godoc
 // @Summary      Deletar personagem por ID
 // @Tags         Character
 // @Produce      json
+// @Security     BearerAuth
 // @Param        id   path      int  true  "ID do personagem" minimum(1)
 // @Success      200  {object}  map[string]string
 // @Router       /characters/{id} [delete]
 func (h *CharacterHandler) DeleteCharacterById(c *gin.Context) {
-	zap.L().Info("[CharacterHandler] DeleteCharacterById",
-		zap.String("method", c.Request.Method),
-		zap.String("path", c.Request.URL.Path),
-	)
+	logRequest(c, "Character", "DeleteCharacterById")
 
 	var input dto.CharacterIDInput
 
@@ -127,12 +107,12 @@ func (h *CharacterHandler) DeleteCharacterById(c *gin.Context) {
 		return
 	}
 
-	if err := h.characterService.DeleteCharacterById(input.ID); err != nil {
+	if err := h.characterService.DeleteCharacterById(c.Request.Context(), input.ID); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "personagem não encontrado"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: err.Error()})
+		internalError(c, "Character", "DeleteCharacterById", err)
 		return
 	}
 
@@ -144,15 +124,13 @@ func (h *CharacterHandler) DeleteCharacterById(c *gin.Context) {
 // @Tags         Character
 // @Accept       json
 // @Produce      json
+// @Security     BearerAuth
 // @Param        id    path      int                      true  "ID do personagem" minimum(1)
 // @Param        body  body      dto.UpdateCharacterInput true  "Dados para atualização"
 // @Success      200   {object}  dto.CharacterResponse
 // @Router       /characters/{id} [patch]
 func (h *CharacterHandler) UpdateCharacter(c *gin.Context) {
-	zap.L().Info("[CharacterHandler] UpdateCharacter",
-		zap.String("method", c.Request.Method),
-		zap.String("path", c.Request.URL.Path),
-	)
+	logRequest(c, "Character", "UpdateCharacter")
 
 	var uriInput dto.CharacterIDInput
 	var bodyInput dto.UpdateCharacterInput
@@ -174,27 +152,65 @@ func (h *CharacterHandler) UpdateCharacter(c *gin.Context) {
 		ImageURL:    bodyInput.ImageURL,
 	}
 
-	updatedCharacter, err := h.characterService.UpdateCharacterById(uriInput.ID, &characterModel)
+	updatedCharacter, err := h.characterService.UpdateCharacterById(c.Request.Context(), uriInput.ID, &characterModel)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		switch {
+		case errors.Is(err, gorm.ErrRecordNotFound):
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "personagem não encontrado"})
-			return
-		}
-		if err.Error() == "nenhum dado recebido para atualização" {
+		case errors.Is(err, services.ErrNoUpdateData):
 			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
-			return
+		case errors.Is(err, services.ErrCharacterExists):
+			c.JSON(http.StatusConflict, dto.ErrorResponse{Error: err.Error()})
+		default:
+			internalError(c, "Character", "UpdateCharacter", err)
 		}
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: err.Error()})
 		return
 	}
 
-	response := dto.CharacterResponse{
-		CharacterID: updatedCharacter.CharacterID,
-		Name:        updatedCharacter.Name,
-		Description: updatedCharacter.Description,
-		Type:        updatedCharacter.Type,
-		ImageURL:    updatedCharacter.ImageURL,
+	c.JSON(http.StatusOK, toCharacterResponse(updatedCharacter))
+}
+
+// GetCharacters godoc
+// @Summary      Listar guias
+// @Description  Lista guias com paginação. O título é um filtro opcional (busca parcial).
+// @Tags         Guide
+// @Produce      json
+// @Param        title  query     string  false  "Filtrar por título"
+// @Param        page   query     int     false  "Página"           default(1)  minimum(1)
+// @Param        limit  query     int     false  "Itens por página"  default(20) minimum(1) maximum(100)
+// @Success      200    {object}  dto.PageResponse[dto.CharacterResponse]
+// @Failure      400    {object}  dto.ErrorResponse
+// @Router       /guides [get]
+func (h *CharacterHandler) GetCharacters(c *gin.Context) {
+	logRequest(c, "Character", "GetCharacters")
+
+	var query dto.CharacterListQuery
+
+	if err := c.ShouldBindQuery(&query); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "parâmetros de consulta inválidos"})
+		return
+	}
+
+	characters, err := h.characterService.GetCharacters(c.Request.Context())
+	if err != nil {
+		internalError(c, "Character", "GetCharacters", err)
+		return
+	}
+
+	response := make([]dto.CharacterResponse, len(characters))
+	for i, character := range characters {
+		response[i] = toCharacterResponse(&character)
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+func toCharacterResponse(character *models.Character) dto.CharacterResponse {
+	return dto.CharacterResponse{
+		CharacterID: character.CharacterID,
+		Name:        character.Name,
+		Description: character.Description,
+		Type:        character.Type,
+		ImageURL:    character.ImageURL,
+	}
 }
