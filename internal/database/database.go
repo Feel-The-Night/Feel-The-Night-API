@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
@@ -107,4 +108,10 @@ func HasAccess(userID int, accessName string) bool {
 	}
 
 	return count > 0
+}
+
+// EscapeLike escapa \, % e _ para usar texto do usuário com LIKE/ILIKE
+// sem que esses caracteres virem curingas.
+func EscapeLike(s string) string {
+	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(s)
 }

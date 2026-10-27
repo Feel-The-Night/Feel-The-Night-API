@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 	"gorm.io/gorm"
 
 	dto "github.com/kisalto/Feel-The-Night-Swagger/internal/dto"
@@ -34,7 +33,7 @@ func NewUserHandler(userService *services.UserService) *UserHandler {
 // @Failure      409   {object}  dto.ErrorResponse
 // @Router       /users [post]
 func (h *UserHandler) CreateUser(c *gin.Context) {
-	logRequest(c, "CreateUser")
+	logRequest(c, "User", "CreateUser")
 
 	var input dto.CreateUserInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -55,7 +54,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 			c.JSON(http.StatusConflict, dto.ErrorResponse{Error: "email já cadastrado"})
 			return
 		}
-		internalError(c, "CreateUser", err)
+		internalError(c, "User", "CreateUser", err)
 		return
 	}
 
@@ -73,7 +72,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 // @Failure      404  {object}  dto.ErrorResponse
 // @Router       /users/{id} [get]
 func (h *UserHandler) GetUserById(c *gin.Context) {
-	logRequest(c, "GetUserById")
+	logRequest(c, "User", "GetUserById")
 
 	var input dto.UserIDInput
 	if err := c.ShouldBindUri(&input); err != nil {
@@ -87,7 +86,7 @@ func (h *UserHandler) GetUserById(c *gin.Context) {
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "usuário não encontrado"})
 			return
 		}
-		internalError(c, "GetUserById", err)
+		internalError(c, "User", "GetUserById", err)
 		return
 	}
 
@@ -104,7 +103,7 @@ func (h *UserHandler) GetUserById(c *gin.Context) {
 // @Failure      400    {object}  dto.ErrorResponse
 // @Router       /users [get]
 func (h *UserHandler) GetUserByEmail(c *gin.Context) {
-	logRequest(c, "GetUserByEmail")
+	logRequest(c, "User", "GetUserByEmail")
 
 	var input dto.UserEmailInput
 	if err := c.ShouldBindQuery(&input); err != nil {
@@ -118,7 +117,7 @@ func (h *UserHandler) GetUserByEmail(c *gin.Context) {
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "usuário não encontrado"})
 			return
 		}
-		internalError(c, "GetUserByEmail", err)
+		internalError(c, "User", "GetUserByEmail", err)
 		return
 	}
 
@@ -135,7 +134,7 @@ func (h *UserHandler) GetUserByEmail(c *gin.Context) {
 // @Failure      400  {object}  dto.ErrorResponse
 // @Router       /users/{id} [delete]
 func (h *UserHandler) DeleteUserById(c *gin.Context) {
-	logRequest(c, "DeleteUserById")
+	logRequest(c, "User", "DeleteUserById")
 
 	var input dto.UserIDInput
 	if err := c.ShouldBindUri(&input); err != nil {
@@ -148,7 +147,7 @@ func (h *UserHandler) DeleteUserById(c *gin.Context) {
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "usuário não encontrado"})
 			return
 		}
-		internalError(c, "DeleteUserById", err)
+		internalError(c, "User", "DeleteUserById", err)
 		return
 	}
 
@@ -168,7 +167,7 @@ func (h *UserHandler) DeleteUserById(c *gin.Context) {
 // @Failure      400   {object}  dto.ErrorResponse
 // @Router       /users/{id} [patch]
 func (h *UserHandler) UpdateUser(c *gin.Context) {
-	logRequest(c, "UpdateUser")
+	logRequest(c, "User", "UpdateUser")
 
 	var uriInput dto.UserIDInput
 	if err := c.ShouldBindUri(&uriInput); err != nil {
@@ -210,25 +209,12 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		case errors.Is(err, gorm.ErrDuplicatedKey):
 			c.JSON(http.StatusConflict, dto.ErrorResponse{Error: "email já cadastrado"})
 		default:
-			internalError(c, "UpdateUser", err)
+			internalError(c, "User", "UpdateUser", err)
 		}
 		return
 	}
 
 	c.JSON(http.StatusOK, toUserResponse(updatedUser))
-}
-
-func logRequest(c *gin.Context, action string) {
-	zap.L().Info("[UserHandler] "+action,
-		zap.String("method", c.Request.Method),
-		zap.String("path", c.Request.URL.Path),
-	)
-}
-
-// internalError loga o erro real e devolve uma mensagem genérica ao cliente.
-func internalError(c *gin.Context, action string, err error) {
-	zap.L().Error("[UserHandler] "+action, zap.Error(err))
-	c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "erro interno"})
 }
 
 // toUserResponse: resposta completa (com email), para o próprio usuário e admin.

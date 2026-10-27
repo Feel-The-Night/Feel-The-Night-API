@@ -18,3 +18,11 @@ type TokenResponse struct {
 	TokenType    string `json:"token_type"`
 	ExpiresIn    int64  `json:"expires_in"`
 }
+
+// PageResponse serve para qualquer listagem paginada (guias, eventos, personagens).
+type PageResponse[T any] struct {
+	Data  []T   `json:"data"`
+	Page  int   `json:"page"`
+	Limit int   `json:"limit"`
+	Total int64 `json:"total"`
+}

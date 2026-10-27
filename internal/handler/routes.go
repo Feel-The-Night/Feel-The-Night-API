@@ -64,6 +64,7 @@ func SetupRoutes(
 	guides := router.Group("/guides")
 	{
 		guides.POST("", logged, creators, guideHandler.CreateGuide)
+		guides.GET("", guideHandler.GetGuides)
 		guides.GET("/:id", guideHandler.GetGuideById)
 		guides.PATCH("/:id", logged, creators, guideHandler.UpdateGuide)
 		guides.DELETE("/:id", logged, admin, guideHandler.DeleteGuideById)

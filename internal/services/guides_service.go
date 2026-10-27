@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/database"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/models"
 	"gorm.io/gorm"
 )
@@ -34,6 +35,31 @@ func (s *GuideService) GetGuideById(id uint) (*models.Guide, error) {
 		return nil, err
 	}
 	return &guide, nil
+}
+
+func (s *GuideService) GetGuides(title string, page, limit int) ([]models.Guide, int64, error) {
+	query := s.db.Model(&models.Guide{})
+	if title != "" {
+		query = query.Where("title ILIKE ?", "%"+database.EscapeLike(title)+"%")
+	}
+	// Session deixa a query reutilizável no Count e no Find
+	query = query.Session(&gorm.Session{})
+
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	var guides []models.Guide
+	if err := query.
+		Order("created_at DESC").
+		Offset((page - 1) * limit).
+		Limit(limit).
+		Find(&guides).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return guides, total, nil
 }
 
 func (s *GuideService) DeleteGuideById(id uint) error {
