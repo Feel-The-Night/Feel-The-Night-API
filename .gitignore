@@ -9,7 +9,7 @@
 *.dylib
 
 # Personalize
-docs/
+bin/*
 bin/
 
 
