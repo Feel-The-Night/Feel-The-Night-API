@@ -29,7 +29,7 @@ func NewCharacterHandler(characterService *services.CharacterService) *Character
 // @Security     BearerAuth
 // @Param        character  body      dto.CreateCharacterInput  true  "Dados do Personagem"
 // @Success      201        {object}  dto.CharacterResponse
-// @Router       /characters [post]
+// @Router       /character [post]
 func (h *CharacterHandler) CreateCharacter(c *gin.Context) {
 	logRequest(c, "Character", "CreateCharacter")
 
@@ -65,7 +65,7 @@ func (h *CharacterHandler) CreateCharacter(c *gin.Context) {
 // @Produce      json
 // @Param        id   path      int  true  "ID do personagem" minimum(1)
 // @Success      200  {object}  dto.CharacterResponse
-// @Router       /characters/{id} [get]
+// @Router       /character/{id} [get]
 func (h *CharacterHandler) GetCharacterById(c *gin.Context) {
 	logRequest(c, "Character", "GetCharacterById")
 
@@ -96,7 +96,7 @@ func (h *CharacterHandler) GetCharacterById(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        id   path      int  true  "ID do personagem" minimum(1)
 // @Success      200  {object}  map[string]string
-// @Router       /characters/{id} [delete]
+// @Router       /character/{id} [delete]
 func (h *CharacterHandler) DeleteCharacterById(c *gin.Context) {
 	logRequest(c, "Character", "DeleteCharacterById")
 
@@ -128,7 +128,7 @@ func (h *CharacterHandler) DeleteCharacterById(c *gin.Context) {
 // @Param        id    path      int                      true  "ID do personagem" minimum(1)
 // @Param        body  body      dto.UpdateCharacterInput true  "Dados para atualização"
 // @Success      200   {object}  dto.CharacterResponse
-// @Router       /characters/{id} [patch]
+// @Router       /character/{id} [patch]
 func (h *CharacterHandler) UpdateCharacter(c *gin.Context) {
 	logRequest(c, "Character", "UpdateCharacter")
 
@@ -171,16 +171,14 @@ func (h *CharacterHandler) UpdateCharacter(c *gin.Context) {
 }
 
 // GetCharacters godoc
-// @Summary      Listar guias
-// @Description  Lista guias com paginação. O título é um filtro opcional (busca parcial).
-// @Tags         Guide
+// @Summary      Listar personagens
+// @Description  Lista personagens com paginação. O Nome é um filtro opcional (busca parcial).
+// @Tags         Character
 // @Produce      json
-// @Param        title  query     string  false  "Filtrar por título"
-// @Param        page   query     int     false  "Página"           default(1)  minimum(1)
-// @Param        limit  query     int     false  "Itens por página"  default(20) minimum(1) maximum(100)
-// @Success      200    {object}  dto.PageResponse[dto.CharacterResponse]
+// @Param        name   query     string  false  "Filtrar por Nome"
+// @Success      200    {object}  dto.CharacterResponse
 // @Failure      400    {object}  dto.ErrorResponse
-// @Router       /guides [get]
+// @Router       /character [get]
 func (h *CharacterHandler) GetCharacters(c *gin.Context) {
 	logRequest(c, "Character", "GetCharacters")
 

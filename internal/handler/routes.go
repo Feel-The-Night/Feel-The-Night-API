@@ -55,7 +55,7 @@ func SetupRoutes(
 	}
 
 	// Rotas de Personagens
-	characters := router.Group("/characters")
+	characters := router.Group("/character")
 	{
 		characters.POST("", logged, creators, characterHandler.CreateCharacter)
 		characters.GET("", characterHandler.GetCharacters)

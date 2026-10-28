@@ -177,13 +177,14 @@ func (h *GuideHandler) UpdateGuide(c *gin.Context) {
 // @Param        title  query     string  false  "Filtrar por título"
 // @Param        page   query     int     false  "Página"           default(1)  minimum(1)
 // @Param        limit  query     int     false  "Itens por página"  default(20) minimum(1) maximum(100)
-// @Success      200    {object}  dto.PageResponse[dto.GuideResponse]
+// @Success      200    {object}  dto.GuidePageResponse
 // @Failure      400    {object}  dto.ErrorResponse
 // @Router       /guides [get]
 func (h *GuideHandler) GetGuides(c *gin.Context) {
 	logRequest(c, "Guide", "GetGuides")
 
 	var query dto.GuideListQuery
+
 	if err := c.ShouldBindQuery(&query); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "parâmetros inválidos"})
 		return
@@ -200,7 +201,7 @@ func (h *GuideHandler) GetGuides(c *gin.Context) {
 		data = append(data, toGuideResponse(&guides[i]))
 	}
 
-	c.JSON(http.StatusOK, dto.PageResponse[dto.GuideResponse]{
+	c.JSON(http.StatusOK, dto.GuidePageResponse{
 		Data:  data,
 		Page:  query.Page,
 		Limit: query.Limit,

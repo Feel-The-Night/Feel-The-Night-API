@@ -50,3 +50,10 @@ type GuideResponse struct {
 	UserID       uint      `json:"user_id"`
 	CharacterID  uint      `json:"character_id"`
 }
+
+type GuidePageResponse struct {
+	Data  []GuideResponse `json:"data"`
+	Page  int             `json:"page"`
+	Limit int             `json:"limit"`
+	Total int64           `json:"total"`
+}
