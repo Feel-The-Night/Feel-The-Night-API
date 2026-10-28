@@ -77,10 +77,10 @@ func createConstraints() error {
 	}
 
 	fks := []fk{
-		{&models.Guide{}, "User"},
-		{&models.Guide{}, "Character"},
-		{&models.Event{}, "User"},
-		{&models.LastEvent{}, "Event"},
+		{&models.User{}, "Guides"},      // guides.user_id → users
+		{&models.Character{}, "Guides"}, // guides.character_id → characters
+		{&models.User{}, "Events"},      // events.user_id → users
+		{&models.Event{}, "LastEvents"}, // last_events.event_id → events
 	}
 
 	for _, f := range fks {

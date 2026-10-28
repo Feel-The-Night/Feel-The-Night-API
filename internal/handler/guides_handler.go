@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 
 	dto "github.com/kisalto/Feel-The-Night-Swagger/internal/dto"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/middleware"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/models"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/services"
 )
@@ -35,6 +36,7 @@ func (h *GuideHandler) CreateGuide(c *gin.Context) {
 	logRequest(c, "Guide", "CreateGuide")
 
 	var input dto.CreateGuideInput
+	claims := middleware.GetClaims(c)
 
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
@@ -48,10 +50,15 @@ func (h *GuideHandler) CreateGuide(c *gin.Context) {
 		Description: input.Description,
 		Link:        input.Link,
 		CharacterID: input.CharacterID,
+		UserID:      uint(claims.UserID), // Supondo que você tenha um middleware que adiciona o ID do usuário ao contexto
 	}
 
 	if err := h.guideService.CreateGuide(c.Request.Context(), &guide); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
+		if errors.Is(err, gorm.ErrForeignKeyViolated) {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "personagem não existe"})
+			return
+		}
+		internalError(c, "Guide", "CreateGuide", err)
 		return
 	}
 
