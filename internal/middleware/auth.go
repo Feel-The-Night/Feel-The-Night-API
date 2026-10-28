@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/auth"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/dto"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/models"
@@ -33,7 +32,7 @@ func RequireAuth() gin.HandlerFunc {
 		claims, err := auth.ValidateAccessToken(tokenString)
 		if err != nil {
 			msg := "token invalido"
-			if errors.Is(err, jwt.ErrTokenExpired) {
+			if errors.Is(err, auth.ErrExpiredToken) {
 				msg = "token expirado"
 			}
 
