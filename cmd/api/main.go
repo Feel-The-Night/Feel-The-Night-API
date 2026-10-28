@@ -39,9 +39,9 @@ func main() {
 		zap.L().Fatal("JWT_SECRET não configurado")
 	}
 
-	// if len(secret) < 32 {
-	// 	zap.L().Fatal("JWT_SECRET precisa ter pelo menos 32 caracteres")
-	// }
+	if len(secret) < 32 {
+		zap.L().Fatal("JWT_SECRET precisa ter pelo menos 32 caracteres")
+	}
 
 	// 1. Tratamento da Porta
 	port := os.Getenv("PORT")

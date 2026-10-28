@@ -25,6 +25,7 @@ func SetupRoutes(
 ) *gin.Engine {
 	router := gin.Default()
 
+	router.Use(middleware.CorsMiddleware())
 	router.Use(middleware.Timeout(10 * time.Second))
 
 	// Permissions Middleware
