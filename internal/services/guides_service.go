@@ -1,9 +1,9 @@
 package services
 
 import (
-	"errors"
-	"time"
+	"context"
 
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/database"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/models"
 	"gorm.io/gorm"
 )
@@ -16,47 +16,62 @@ func NewGuideService(db *gorm.DB) *GuideService {
 	return &GuideService{db: db}
 }
 
-func (s *GuideService) CreateGuide(guide *models.Guide) error {
-
-	guide.CreationDate = time.Now()
-	guide.Likes = 0
-	guide.Dislikes = 0
-
-	return s.db.Create(guide).Error
+func (s *GuideService) CreateGuide(ctx context.Context, guide *models.Guide) error {
+	// CreatedAt o GORM preenche sozinho; Likes/Dislikes têm default 0 no model
+	return s.db.WithContext(ctx).Create(guide).Error
 }
 
-func (s *GuideService) GetGuideById(id uint) (*models.Guide, error) {
+func (s *GuideService) GetGuideById(ctx context.Context, id uint) (*models.Guide, error) {
 	var guide models.Guide
-	if err := s.db.First(&guide, id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, err
-		}
+	if err := s.db.WithContext(ctx).First(&guide, id).Error; err != nil {
 		return nil, err
 	}
 	return &guide, nil
 }
 
-func (s *GuideService) DeleteGuideById(id uint) error {
-	result := s.db.Delete(&models.Guide{GuideID: id})
+func (s *GuideService) GetGuides(ctx context.Context, title string, page, limit int) ([]models.Guide, int64, error) {
+	query := s.db.WithContext(ctx).Model(&models.Guide{})
+	if title != "" {
+		query = query.Where("title ILIKE ?", "%"+database.EscapeLike(title)+"%")
+	}
+	// Session deixa a query reutilizável no Count e no Find
+	query = query.Session(&gorm.Session{})
+
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	var guides []models.Guide
+	if err := query.
+		Order("created_at DESC").
+		Offset((page - 1) * limit).
+		Limit(limit).
+		Find(&guides).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return guides, total, nil
+}
+
+func (s *GuideService) DeleteGuideById(ctx context.Context, id uint) error {
+	result := s.db.WithContext(ctx).Delete(&models.Guide{}, id)
 	if result.Error != nil {
 		return result.Error
 	}
-
 	if result.RowsAffected == 0 {
 		return gorm.ErrRecordNotFound
 	}
-
 	return nil
 }
 
-func (s *GuideService) UpdateGuide(id uint, guide *models.Guide) (*models.Guide, error) {
-	existingGuide, err := s.GetGuideById(id)
+func (s *GuideService) UpdateGuide(ctx context.Context, id uint, guide *models.Guide) (*models.Guide, error) {
+	existingGuide, err := s.GetGuideById(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
 	updates := make(map[string]any)
-
 	if guide.Title != "" {
 		updates["title"] = guide.Title
 	}
@@ -77,7 +92,7 @@ func (s *GuideService) UpdateGuide(id uint, guide *models.Guide) (*models.Guide,
 		return existingGuide, nil
 	}
 
-	if err := s.db.Model(existingGuide).Updates(updates).Error; err != nil {
+	if err := s.db.WithContext(ctx).Model(existingGuide).Updates(updates).Error; err != nil {
 		return nil, err
 	}
 

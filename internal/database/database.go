@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
@@ -41,6 +42,7 @@ func Connect() error {
 		DSN:                  dsn,
 		PreferSimpleProtocol: true,
 	}), &gorm.Config{
+		TranslateError:                           true,
 		DisableForeignKeyConstraintWhenMigrating: true,
 	})
 	if err != nil {
@@ -89,4 +91,27 @@ func createConstraints() error {
 		}
 	}
 	return nil
+}
+
+func HasAccess(userID int, accessName string) bool {
+	var count int64
+
+	err := DB.Model(&models.User{}).
+		Joins("JOIN user_role ur ON ur.user_id = users.id").
+		Joins("JOIN role_access ra ON ra.role_id = ur.role_id").
+		Joins("JOIN access a ON a.access_id = ra.access_id").
+		Where("users.id = ? AND a.access_name = ?", userID, accessName).
+		Count(&count).Error
+
+	if err != nil {
+		return false
+	}
+
+	return count > 0
+}
+
+// EscapeLike escapa \, % e _ para usar texto do usuário com LIKE/ILIKE
+// sem que esses caracteres virem curingas.
+func EscapeLike(s string) string {
+	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(s)
 }

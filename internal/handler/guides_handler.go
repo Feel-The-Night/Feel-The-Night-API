@@ -3,9 +3,9 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 	"gorm.io/gorm"
 
 	dto "github.com/kisalto/Feel-The-Night-Swagger/internal/dto"
@@ -27,14 +27,12 @@ func NewGuideHandler(guideService *services.GuideService) *GuideHandler {
 // @Tags         Guide
 // @Accept       json
 // @Produce      json
+// @Security     BearerAuth
 // @Param        guide  body      dto.CreateGuideInput  true  "Dados do guia"
 // @Success      201    {object}  dto.GuideResponse
 // @Router       /guides [post]
 func (h *GuideHandler) CreateGuide(c *gin.Context) {
-	zap.L().Info("[GuideHandler] CreateGuide",
-		zap.String("method", c.Request.Method),
-		zap.String("path", c.Request.URL.Path),
-	)
+	logRequest(c, "Guide", "CreateGuide")
 
 	var input dto.CreateGuideInput
 
@@ -49,30 +47,15 @@ func (h *GuideHandler) CreateGuide(c *gin.Context) {
 		Type:        input.Type,
 		Description: input.Description,
 		Link:        input.Link,
-		UserID:      input.UserID,
 		CharacterID: input.CharacterID,
 	}
 
-	if err := h.guideService.CreateGuide(&guide); err != nil {
+	if err := h.guideService.CreateGuide(c.Request.Context(), &guide); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
 		return
 	}
 
-	response := dto.GuideResponse{
-		GuideID:      guide.GuideID,
-		Title:        guide.Title,
-		BannerURL:    guide.BannerURL,
-		Type:         guide.Type,
-		Description:  guide.Description,
-		Link:         guide.Link,
-		CreationDate: guide.CreationDate,
-		Likes:        guide.Likes,
-		Dislikes:     guide.Dislikes,
-		UserID:       guide.UserID,
-		CharacterID:  guide.CharacterID,
-	}
-
-	c.JSON(http.StatusCreated, response)
+	c.JSON(http.StatusCreated, toGuideResponse(&guide))
 }
 
 // GetGuideById godoc
@@ -83,10 +66,7 @@ func (h *GuideHandler) CreateGuide(c *gin.Context) {
 // @Success      200  {object}  dto.GuideResponse
 // @Router       /guides/{id} [get]
 func (h *GuideHandler) GetGuideById(c *gin.Context) {
-	zap.L().Info("[GuideHandler] GetGuideById",
-		zap.String("method", c.Request.Method),
-		zap.String("path", c.Request.URL.Path),
-	)
+	logRequest(c, "Guide", "GetGuideById")
 
 	var input dto.GuideIDInput
 
@@ -95,45 +75,29 @@ func (h *GuideHandler) GetGuideById(c *gin.Context) {
 		return
 	}
 
-	guide, err := h.guideService.GetGuideById(input.ID)
+	guide, err := h.guideService.GetGuideById(c.Request.Context(), input.ID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "guia não encontrado"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: err.Error()})
+		internalError(c, "Guide", "GetGuideById", err)
 		return
 	}
 
-	response := dto.GuideResponse{
-		GuideID:      guide.GuideID,
-		Title:        guide.Title,
-		BannerURL:    guide.BannerURL,
-		Type:         guide.Type,
-		Description:  guide.Description,
-		Link:         guide.Link,
-		CreationDate: guide.CreationDate,
-		Likes:        guide.Likes,
-		Dislikes:     guide.Dislikes,
-		UserID:       guide.UserID,
-		CharacterID:  guide.CharacterID,
-	}
-
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, toGuideResponse(guide))
 }
 
 // DeleteGuideById godoc
 // @Summary      Deletar guia por ID
 // @Tags         Guide
 // @Produce      json
+// @Security     BearerAuth
 // @Param        id   path      int  true  "ID do guia" minimum(1)
 // @Success      200  {object}  map[string]string
 // @Router       /guides/{id} [delete]
 func (h *GuideHandler) DeleteGuideById(c *gin.Context) {
-	zap.L().Info("[GuideHandler] DeleteGuideById",
-		zap.String("method", c.Request.Method),
-		zap.String("path", c.Request.URL.Path),
-	)
+	logRequest(c, "Guide", "DeleteGuideById")
 
 	var input dto.GuideIDInput
 
@@ -142,12 +106,12 @@ func (h *GuideHandler) DeleteGuideById(c *gin.Context) {
 		return
 	}
 
-	if err := h.guideService.DeleteGuideById(input.ID); err != nil {
+	if err := h.guideService.DeleteGuideById(c.Request.Context(), input.ID); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "guia não encontrado"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: err.Error()})
+		internalError(c, "Guide", "DeleteGuideById", err)
 		return
 	}
 
@@ -159,15 +123,13 @@ func (h *GuideHandler) DeleteGuideById(c *gin.Context) {
 // @Tags         Guide
 // @Accept       json
 // @Produce      json
+// @Security     BearerAuth
 // @Param        id    path      int                   true  "ID do guia" minimum(1)
 // @Param        body  body      dto.UpdateGuideInput  true  "Dados para atualização"
 // @Success      200   {object}  dto.GuideResponse
 // @Router       /guides/{id} [patch]
 func (h *GuideHandler) UpdateGuide(c *gin.Context) {
-	zap.L().Info("[GuideHandler] UpdateGuide",
-		zap.String("method", c.Request.Method),
-		zap.String("path", c.Request.URL.Path),
-	)
+	logRequest(c, "Guide", "UpdateGuide")
 
 	var uriInput dto.GuideIDInput
 	var bodyInput dto.UpdateGuideInput
@@ -190,7 +152,7 @@ func (h *GuideHandler) UpdateGuide(c *gin.Context) {
 		Link:        bodyInput.Link,
 	}
 
-	updatedGuide, err := h.guideService.UpdateGuide(uriInput.ID, &guideModel)
+	updatedGuide, err := h.guideService.UpdateGuide(c.Request.Context(), uriInput.ID, &guideModel)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "guia não encontrado"})
@@ -200,23 +162,65 @@ func (h *GuideHandler) UpdateGuide(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: err.Error()})
+		internalError(c, "Guide", "UpdateGuide", err)
 		return
 	}
 
-	response := dto.GuideResponse{
-		GuideID:      updatedGuide.GuideID,
-		Title:        updatedGuide.Title,
-		BannerURL:    updatedGuide.BannerURL,
-		Type:         updatedGuide.Type,
-		Description:  updatedGuide.Description,
-		Link:         updatedGuide.Link,
-		CreationDate: updatedGuide.CreationDate,
-		Likes:        updatedGuide.Likes,
-		Dislikes:     updatedGuide.Dislikes,
-		UserID:       updatedGuide.UserID,
-		CharacterID:  updatedGuide.CharacterID,
+	c.JSON(http.StatusOK, toGuideResponse(updatedGuide))
+}
+
+// GetGuides godoc
+// @Summary      Listar guias
+// @Description  Lista guias com paginação. O título é um filtro opcional (busca parcial).
+// @Tags         Guide
+// @Produce      json
+// @Param        title  query     string  false  "Filtrar por título"
+// @Param        page   query     int     false  "Página"           default(1)  minimum(1)
+// @Param        limit  query     int     false  "Itens por página"  default(20) minimum(1) maximum(100)
+// @Success      200    {object}  dto.GuidePageResponse
+// @Failure      400    {object}  dto.ErrorResponse
+// @Router       /guides [get]
+func (h *GuideHandler) GetGuides(c *gin.Context) {
+	logRequest(c, "Guide", "GetGuides")
+
+	var query dto.GuideListQuery
+
+	if err := c.ShouldBindQuery(&query); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "parâmetros inválidos"})
+		return
 	}
 
-	c.JSON(http.StatusOK, response)
+	guides, total, err := h.guideService.GetGuides(c.Request.Context(), strings.TrimSpace(query.Title), query.Page, query.Limit)
+	if err != nil {
+		internalError(c, "Guide", "GetGuides", err)
+		return
+	}
+
+	data := make([]dto.GuideResponse, 0, len(guides))
+	for i := range guides {
+		data = append(data, toGuideResponse(&guides[i]))
+	}
+
+	c.JSON(http.StatusOK, dto.GuidePageResponse{
+		Data:  data,
+		Page:  query.Page,
+		Limit: query.Limit,
+		Total: total,
+	})
+}
+
+func toGuideResponse(g *models.Guide) dto.GuideResponse {
+	return dto.GuideResponse{
+		GuideID:      g.GuideID,
+		Title:        g.Title,
+		BannerURL:    g.BannerURL,
+		Type:         g.Type,
+		Description:  g.Description,
+		Link:         g.Link,
+		CreationDate: g.CreatedAt,
+		Likes:        g.Likes,
+		Dislikes:     g.Dislikes,
+		UserID:       g.UserID,
+		CharacterID:  g.CharacterID,
+	}
 }

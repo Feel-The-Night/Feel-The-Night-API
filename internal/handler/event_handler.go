@@ -6,13 +6,15 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 	"gorm.io/gorm"
 
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/dto"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/middleware"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/models"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/services"
 )
+
+const dayLayout = "2006-01-02"
 
 type EventHandler struct {
 	eventService *services.EventService
@@ -22,55 +24,51 @@ func NewEventHandler(eventService *services.EventService) *EventHandler {
 	return &EventHandler{eventService: eventService}
 }
 
+func parseDay(s string) (time.Time, error) {
+	return time.Parse(dayLayout, s)
+}
+
 // CreateEvent godoc
 // @Summary      Criar um novo evento
 // @Description  Cria um novo evento com os dados informados no corpo da requisição.
 // @Tags         Event
 // @Accept       json
 // @Produce      json
+// @Security     BearerAuth
 // @Param        event  body      dto.CreateEventInput  true  "Dados do Evento"
 // @Success      201        {object}  dto.EventResponse
 // @Router       /events [post]
 func (h *EventHandler) CreateEvent(c *gin.Context) {
-	zap.L().Info("[EventHandler] CreateEvent",
-		zap.String("method", c.Request.Method),
-		zap.String("path", c.Request.URL.Path),
-	)
+	logRequest(c, "Event", "CreateEvent")
 
 	var input dto.CreateEventInput
-
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "corpo da requisição inválido"})
 		return
 	}
 
-	data, err := time.Parse("02/01/2006", input.Day)
+	day, err := parseDay(input.Day)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "data inválida, use AAAA-MM-DD"})
+		return
 	}
+
+	claims := middleware.GetClaims(c)
 
 	event := models.Event{
 		Title:       input.Title,
 		Description: input.Description,
 		BannerURL:   input.BannerURL,
-		Day:         data,
-		UserID:      input.UserID,
+		Day:         day,
+		UserID:      uint(claims.UserID), // vem do token
 	}
 
-	if err := h.eventService.CreateEvent(&event); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
+	if err := h.eventService.CreateEvent(c.Request.Context(), &event); err != nil {
+		internalError(c, "Event", "CreateEvent", err)
 		return
 	}
 
-	response := dto.EventResponse{
-		EventID:     event.EventID,
-		Title:       event.Title,
-		Description: event.Description,
-		BannerURL:   event.BannerURL,
-		Day:         event.Day,
-	}
-
-	c.JSON(http.StatusCreated, response)
+	c.JSON(http.StatusCreated, toEventResponse(&event))
 }
 
 // GetEventById godoc
@@ -81,10 +79,7 @@ func (h *EventHandler) CreateEvent(c *gin.Context) {
 // @Success      200  {object}  dto.EventResponse
 // @Router       /events/{id} [get]
 func (h *EventHandler) GetEventById(c *gin.Context) {
-	zap.L().Info("[EventHandler] GetEventById",
-		zap.String("method", c.Request.Method),
-		zap.String("path", c.Request.URL.Path),
-	)
+	logRequest(c, "Event", "GetEventById")
 
 	var input dto.EventIDInput
 
@@ -93,39 +88,29 @@ func (h *EventHandler) GetEventById(c *gin.Context) {
 		return
 	}
 
-	event, err := h.eventService.GetEventById(input.ID)
+	event, err := h.eventService.GetEventById(c.Request.Context(), input.ID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "evento não encontrado"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: err.Error()})
+		internalError(c, "Event", "GetEventById", err)
 		return
 	}
 
-	response := dto.EventResponse{
-		EventID:     event.EventID,
-		Title:       event.Title,
-		Description: event.Description,
-		BannerURL:   event.BannerURL,
-		Day:         event.Day,
-	}
-
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, toEventResponse(event))
 }
 
 // DeleteEventById godoc
 // @Summary      Deletar evento por ID
 // @Tags         Event
 // @Produce      json
+// @Security     BearerAuth
 // @Param        id   path      int  true  "ID do evento" minimum(1)
 // @Success      200  {object}  map[string]string
 // @Router       /events/{id} [delete]
 func (h *EventHandler) DeleteEventById(c *gin.Context) {
-	zap.L().Info("[EventHandler] DeleteEventById",
-		zap.String("method", c.Request.Method),
-		zap.String("path", c.Request.URL.Path),
-	)
+	logRequest(c, "Event", "DeleteEventById")
 
 	var input dto.EventIDInput
 
@@ -134,12 +119,12 @@ func (h *EventHandler) DeleteEventById(c *gin.Context) {
 		return
 	}
 
-	if err := h.eventService.DeleteEventById(input.ID); err != nil {
+	if err := h.eventService.DeleteEventById(c.Request.Context(), input.ID); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "evento não encontrado"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: err.Error()})
+		internalError(c, "Event", "DeleteEventById", err)
 		return
 	}
 
@@ -151,18 +136,26 @@ func (h *EventHandler) DeleteEventById(c *gin.Context) {
 // @Tags         Event
 // @Accept       json
 // @Produce      json
+// @Security     BearerAuth
 // @Param        id    path      int                      true  "ID do evento" minimum(1)
 // @Param        body  body      dto.UpdateEventInput true  "Dados para atualização"
 // @Success      200   {object}  dto.EventResponse
 // @Router       /events/{id} [patch]
 func (h *EventHandler) UpdateEvent(c *gin.Context) {
-	zap.L().Info("[EventHandler] UpdateEvent",
-		zap.String("method", c.Request.Method),
-		zap.String("path", c.Request.URL.Path),
-	)
+	logRequest(c, "Event", "UpdateEvent")
 
 	var uriInput dto.EventIDInput
 	var bodyInput dto.UpdateEventInput
+	var day time.Time
+
+	if bodyInput.Day != "" {
+		parsed, err := parseDay(bodyInput.Day)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "data inválida, use AAAA-MM-DD"})
+			return
+		}
+		day = parsed
+	}
 
 	if err := c.ShouldBindUri(&uriInput); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "id inválido"})
@@ -178,30 +171,69 @@ func (h *EventHandler) UpdateEvent(c *gin.Context) {
 		Title:       bodyInput.Title,
 		Description: bodyInput.Description,
 		BannerURL:   bodyInput.BannerURL,
-		Day:         bodyInput.Day,
+		Day:         day,
 	}
 
-	updatedEvent, err := h.eventService.UpdateEventById(uriInput.ID, &eventModel)
+	updatedEvent, err := h.eventService.UpdateEventById(c.Request.Context(), uriInput.ID, &eventModel)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "evento não encontrado"})
 			return
 		}
-		if err.Error() == "nenhum dado recebido para atualização" {
+		if errors.Is(err, services.ErrNoUpdateData) {
 			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: err.Error()})
+		internalError(c, "Event", "UpdateEvent", err)
 		return
 	}
 
-	response := dto.EventResponse{
-		EventID:     updatedEvent.EventID,
-		Title:       updatedEvent.Title,
-		Description: updatedEvent.Description,
-		BannerURL:   updatedEvent.BannerURL,
-		Day:         updatedEvent.Day,
+	c.JSON(http.StatusOK, toEventResponse(updatedEvent))
+}
+
+// GetEvents godoc
+// @Summary      listar eventos
+// @Description  Lista eventos com filtros opcionais de título e paginação.
+// @Tags         Event
+// @Produce      json
+// @Param        title  query     string  false  "Filtrar por título"
+// @Param        page   query     int     false  "Página"           default(1)  minimum(1)
+// @Param        limit  query     int     false  "Itens por página"  default(20) minimum(1) maximum(100)
+// @Success      200  {object}  dto.EventResponse
+// @Router       /events [get]
+func (h *EventHandler) GetEvents(c *gin.Context) {
+	logRequest(c, "Event", "GetEvents")
+
+	var query dto.EventListQuery
+	if err := c.ShouldBindQuery(&query); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "parâmetros de query inválidos"})
+		return
 	}
 
-	c.JSON(http.StatusOK, response)
+	events, total, err := h.eventService.GetEvents(c.Request.Context(), query.Title, query.Upcoming, query.Page, query.Limit)
+	if err != nil {
+		internalError(c, "Event", "GetEvents", err)
+		return
+	}
+
+	eventResponses := make([]dto.EventResponse, len(events))
+	for i, e := range events {
+		eventResponses[i] = toEventResponse(&e)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"total":  total,
+		"events": eventResponses,
+	})
+}
+
+func toEventResponse(e *models.Event) dto.EventResponse {
+	return dto.EventResponse{
+		EventID:     e.EventID,
+		Title:       e.Title,
+		Description: e.Description,
+		BannerURL:   e.BannerURL,
+		Day:         e.Day.Format(dayLayout),
+		UserID:      e.UserID,
+	}
 }
