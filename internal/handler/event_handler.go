@@ -148,15 +148,6 @@ func (h *EventHandler) UpdateEvent(c *gin.Context) {
 	var bodyInput dto.UpdateEventInput
 	var day time.Time
 
-	if bodyInput.Day != "" {
-		parsed, err := parseDay(bodyInput.Day)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "data inválida, use AAAA-MM-DD"})
-			return
-		}
-		day = parsed
-	}
-
 	if err := c.ShouldBindUri(&uriInput); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "id inválido"})
 		return
@@ -165,6 +156,15 @@ func (h *EventHandler) UpdateEvent(c *gin.Context) {
 	if err := c.ShouldBindJSON(&bodyInput); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "corpo da requisição inválido"})
 		return
+	}
+
+	if bodyInput.Day != "" {
+		parsed, err := parseDay(bodyInput.Day)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "data inválida, use AAAA-MM-DD"})
+			return
+		}
+		day = parsed
 	}
 
 	eventModel := models.Event{
