@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kisalto/Feel-The-Night-Swagger/internal/database"
 )
 
 const defaultOrigins = "http://localhost:3000,http://localhost:5173,http://localhost:5174,http://localhost:5175"
@@ -19,23 +18,6 @@ var (
 	signKey    *rsa.PrivateKey
 	serverPort int
 )
-
-func RBACMiddleware(permission string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		userID, exists := c.Get("id")
-		if !exists {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found"})
-			c.Abort()
-			return
-		}
-		if !database.HasAccess(userID.(int), permission) {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied"})
-			c.Abort()
-			return
-		}
-		c.Next()
-	}
-}
 
 func CorsMiddleware() gin.HandlerFunc {
 	// CORS_ORIGINS=https://meusite.com,http://localhost:5173

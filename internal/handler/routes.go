@@ -7,9 +7,9 @@ import (
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"gorm.io/gorm"
 
 	_ "github.com/kisalto/Feel-The-Night-Swagger/docs"
-	"github.com/kisalto/Feel-The-Night-Swagger/internal/database"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/middleware"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/models"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/services"
@@ -87,22 +87,22 @@ func SetupRoutes(
 	return router
 }
 
-func Setup() *gin.Engine {
+func Setup(db *gorm.DB) *gin.Engine {
 	// Inicialização de serviços e handlers
 	// User
-	userService := services.NewUserService(database.DB)
+	userService := services.NewUserService(db)
 	userHandler := NewUserHandler(userService)
 
 	// Character
-	characterService := services.NewCharacterService(database.DB)
+	characterService := services.NewCharacterService(db)
 	characterHandler := NewCharacterHandler(characterService)
 
 	// Guides
-	guideService := services.NewGuideService(database.DB)
+	guideService := services.NewGuideService(db)
 	guideHandler := NewGuideHandler(guideService)
 
 	// Eventos
-	eventService := services.NewEventService(database.DB)
+	eventService := services.NewEventService(db)
 	eventHandler := NewEventHandler(eventService)
 
 	// Auth
