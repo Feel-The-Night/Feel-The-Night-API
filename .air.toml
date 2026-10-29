@@ -10,7 +10,7 @@ tmp_dir = "tmp"
   bin = "./tmp/main.exe"
 
   # Windows cmd
-  cmd = "swag init -g cmd/api/main.go; go build -o ./tmp/main.exe ./cmd/api"
+  cmd = "swag init -d ./cmd/api,./internal/handler,./internal/models,./internal/dto -g main.go; go build -o ./tmp/main.exe ./cmd/api"
 
   delay = 1000
 

@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -189,18 +190,24 @@ func (h *CharacterHandler) GetCharacters(c *gin.Context) {
 		return
 	}
 
-	characters, err := h.characterService.GetCharacters(c.Request.Context())
+	characters, total, err := h.characterService.GetCharacters(c.Request.Context(), strings.TrimSpace(query.Name), query.Page, query.Limit)
 	if err != nil {
 		internalError(c, "Character", "GetCharacters", err)
 		return
 	}
 
-	response := make([]dto.CharacterResponse, len(characters))
+	data := make([]dto.CharacterResponse, len(characters))
 	for i, character := range characters {
-		response[i] = toCharacterResponse(&character)
+		data[i] = toCharacterResponse(&character)
 	}
 
-	c.JSON(http.StatusOK, response)
+	// c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, dto.PageResponse[dto.CharacterResponse]{
+		Data:  data,
+		Page:  query.Page,
+		Limit: query.Limit,
+		Total: total,
+	})
 }
 
 func toCharacterResponse(character *models.Character) dto.CharacterResponse {

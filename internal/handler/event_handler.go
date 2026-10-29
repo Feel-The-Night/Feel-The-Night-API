@@ -199,7 +199,7 @@ func (h *EventHandler) UpdateEvent(c *gin.Context) {
 // @Param        title  query     string  false  "Filtrar por título"
 // @Param        page   query     int     false  "Página"           default(1)  minimum(1)
 // @Param        limit  query     int     false  "Itens por página"  default(20) minimum(1) maximum(100)
-// @Success      200  {object}  dto.EventResponse
+// @Success      200  {object}  dto.PageResponse[dto.EventResponse]
 // @Router       /events [get]
 func (h *EventHandler) GetEvents(c *gin.Context) {
 	logRequest(c, "Event", "GetEvents")
@@ -216,14 +216,21 @@ func (h *EventHandler) GetEvents(c *gin.Context) {
 		return
 	}
 
-	eventResponses := make([]dto.EventResponse, len(events))
+	data := make([]dto.EventResponse, len(events))
 	for i, e := range events {
-		eventResponses[i] = toEventResponse(&e)
+		data[i] = toEventResponse(&e)
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"total":  total,
-		"events": eventResponses,
+	// c.JSON(http.StatusOK, gin.H{
+	// 	"total":  total,
+	// 	"events": eventResponses,
+	// })
+
+	c.JSON(http.StatusOK, dto.PageResponse[dto.EventResponse]{
+		Data:  data,
+		Page:  query.Page,
+		Limit: query.Limit,
+		Total: total,
 	})
 }
 

@@ -119,19 +119,6 @@ definitions:
       user_id:
         type: integer
     type: object
-  dto.GuidePageResponse:
-    properties:
-      data:
-        items:
-          $ref: '#/definitions/dto.GuideResponse'
-        type: array
-      limit:
-        type: integer
-      page:
-        type: integer
-      total:
-        type: integer
-    type: object
   dto.GuideResponse:
     properties:
       banner_url:
@@ -163,6 +150,35 @@ definitions:
         type: string
       password:
         type: string
+    required:
+    - email
+    - password
+    type: object
+  dto.PageResponse-dto_EventResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.EventResponse'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  dto.PageResponse-dto_GuideResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.GuideResponse'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
     type: object
   dto.PublicUserResponse:
     properties:
@@ -446,7 +462,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.EventResponse'
+            $ref: '#/definitions/dto.PageResponse-dto_EventResponse'
       summary: listar eventos
       tags:
       - Event
@@ -570,7 +586,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.GuidePageResponse'
+            $ref: '#/definitions/dto.PageResponse-dto_GuideResponse'
         "400":
           description: Bad Request
           schema:
