@@ -107,28 +107,16 @@ func (s *CharacterService) UpdateCharacterById(ctx context.Context, id uint, cha
 	return existingCharacter, nil
 }
 
-func (s *CharacterService) GetCharacters(ctx context.Context, name string, page, limit int) ([]models.Character, int64, error) {
+func (s *CharacterService) GetCharacters(ctx context.Context, name, charType string) ([]models.Character, error) {
 	query := s.db.WithContext(ctx).Model(&models.Character{})
 	if name != "" {
 		query = query.Where("name ILIKE ?", "%"+database.EscapeLike(name)+"%")
 	}
-
-	query = query.Session(&gorm.Session{})
-
-	var total int64
-	if err := query.Count(&total).Error; err != nil {
-		return nil, 0, err
+	if charType != "" {
+		query = query.Where("LOWER(type) = LOWER(?)", charType)
 	}
 
 	var characters []models.Character
-
-	if err := query.
-		Order("name").
-		Offset((page - 1) * limit).
-		Limit(limit).
-		Find(&characters).Error; err != nil {
-		return nil, 0, err
-	}
-
-	return characters, total, nil
+	err := query.Order("name ASC").Find(&characters).Error
+	return characters, err
 }

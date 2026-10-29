@@ -180,41 +180,39 @@ func (h *CharacterHandler) UpdateCharacter(c *gin.Context) {
 
 // GetCharacters godoc
 // @Summary      Listar personagens
-// @Description  Lista personagens com paginação. O Nome é um filtro opcional (busca parcial).
+// @Description  Lista todos os personagens. Nome (busca parcial) e tipo são filtros opcionais.
 // @Tags         Character
 // @Produce      json
-// @Param        name   query     string  false  "Filtrar por Nome"
-// @Success      200    {list}    dto.CharacterResponse
-// @Failure      400    {object}  dto.ErrorResponse
-// @Router       /character [get]
+// @Param        name  query     string  false  "Filtrar por nome"
+// @Param        type  query     string  false  "Filtrar por tipo"
+// @Success      200   {array}   dto.CharacterResponse
+// @Failure      400   {object}  dto.ErrorResponse
+// @Router       /characters [get]
 func (h *CharacterHandler) GetCharacters(c *gin.Context) {
 	logRequest(c, "Character", "GetCharacters")
 
 	var query dto.CharacterListQuery
-
 	if err := c.ShouldBindQuery(&query); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "parâmetros de consulta inválidos"})
 		return
 	}
 
-	characters, total, err := h.characterService.GetCharacters(c.Request.Context(), strings.TrimSpace(query.Name), query.Page, query.Limit)
+	characters, err := h.characterService.GetCharacters(
+		c.Request.Context(),
+		strings.TrimSpace(query.Name),
+		strings.TrimSpace(query.Type),
+	)
 	if err != nil {
 		internalError(c, "Character", "GetCharacters", err)
 		return
 	}
 
-	data := make([]dto.CharacterResponse, len(characters))
-	for i, character := range characters {
-		data[i] = toCharacterResponse(&character)
+	response := make([]dto.CharacterResponse, 0, len(characters))
+	for i := range characters {
+		response = append(response, toCharacterResponse(&characters[i]))
 	}
 
-	// c.JSON(http.StatusOK, response)
-	c.JSON(http.StatusOK, dto.PageResponse[dto.CharacterResponse]{
-		Data:  data,
-		Page:  query.Page,
-		Limit: query.Limit,
-		Total: total,
-	})
+	c.JSON(http.StatusOK, response)
 }
 
 func toCharacterResponse(character *models.Character) dto.CharacterResponse {

@@ -3,10 +3,10 @@ package dto
 // CreateCharacterInput representa os dados para criação de um personagem.
 // @Title CreateCharacterInput
 type CreateCharacterInput struct {
-	Name        string `json:"name" binding:"required,max=20"`
+	Name        string `json:"name" binding:"required,max=100"`
 	Description string `json:"description" binding:"required,max=255"`
 	ImageURL    string `json:"image_url" binding:"omitempty,url"`
-	Type        string `json:"type" binding:"required,max=15"`
+	Type        string `json:"type" binding:"required,max=30"`
 }
 
 // CharacterIDInput valida o parâmetro :id na URL.
@@ -18,10 +18,10 @@ type CharacterIDInput struct {
 // UpdateCharacterInput representa os campos opcionais para atualização (PATCH) de personagem.
 // @Title UpdateCharacterInput
 type UpdateCharacterInput struct {
-	Name        string `json:"name" binding:"omitempty,max=20"`
+	Name        string `json:"name" binding:"omitempty,max=100"`
 	Description string `json:"description" binding:"omitempty,max=255"`
 	ImageURL    string `json:"image_url" binding:"omitempty,url"`
-	Type        string `json:"type" binding:"omitempty,max=15"`
+	Type        string `json:"type" binding:"omitempty,max=30"`
 }
 
 // CharacterResponse representa os dados do personagem retornados nas respostas HTTP.
@@ -36,7 +36,6 @@ type CharacterResponse struct {
 
 // CharacterListQuery são os filtros e a paginação de GET /events.
 type CharacterListQuery struct {
-	Name  string `form:"name" binding:"max=100"`
-	Page  int    `form:"page,default=1" binding:"min=1"`
-	Limit int    `form:"limit,default=20" binding:"min=1,max=100"`
+	Name string `form:"name" binding:"omitempty,max=100"`
+	Type string `form:"type" binding:"omitempty,max=30"`
 }

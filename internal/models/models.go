@@ -43,10 +43,10 @@ func (User) TableName() string { return "users" }
 // Character table
 type Character struct {
 	CharacterID uint   `gorm:"primaryKey"`
-	Name        string `gorm:"size:20;not null"`
+	Name        string `gorm:"size:100;not null"`
 	Description string `gorm:"size:255;not null"`
 	ImageURL    string `gorm:"size:255"`
-	Type        string `gorm:"size:15;not null"`
+	Type        string `gorm:"size:30;not null"`
 
 	CreatedAt time.Time
 	UpdatedAt time.Time

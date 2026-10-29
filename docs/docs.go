@@ -62,38 +62,6 @@ const docTemplate = `{
             }
         },
         "/character": {
-            "get": {
-                "description": "Lista personagens com paginação. O Nome é um filtro opcional (busca parcial).",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Character"
-                ],
-                "summary": "Listar personagens",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filtrar por Nome",
-                        "name": "name",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "list"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    }
-                }
-            },
             "post": {
                 "security": [
                     {
@@ -235,6 +203,49 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/dto.CharacterResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/characters": {
+            "get": {
+                "description": "Lista todos os personagens. Nome (busca parcial) e tipo são filtros opcionais.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Character"
+                ],
+                "summary": "Listar personagens",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filtrar por nome",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filtrar por tipo",
+                        "name": "type",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.CharacterResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -882,11 +893,11 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string",
-                    "maxLength": 20
+                    "maxLength": 100
                 },
                 "type": {
                     "type": "string",
-                    "maxLength": 15
+                    "maxLength": 30
                 }
             }
         },
@@ -1134,11 +1145,11 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string",
-                    "maxLength": 20
+                    "maxLength": 100
                 },
                 "type": {
                     "type": "string",
-                    "maxLength": 15
+                    "maxLength": 30
                 }
             }
         },
