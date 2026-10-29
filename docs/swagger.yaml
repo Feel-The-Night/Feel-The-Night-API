@@ -317,7 +317,35 @@ paths:
       summary: Login
       tags:
       - Auth
-  /character:
+  /characters:
+    get:
+      description: Lista todos os personagens. Nome (busca parcial) e tipo são filtros
+        opcionais.
+      parameters:
+      - description: Filtrar por nome
+        in: query
+        name: name
+        type: string
+      - description: Filtrar por tipo
+        in: query
+        name: type
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.CharacterResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Listar personagens
+      tags:
+      - Character
     post:
       consumes:
       - application/json
@@ -341,7 +369,7 @@ paths:
       summary: Criar um novo personagem
       tags:
       - Character
-  /character/{id}:
+  /characters/{id}:
     delete:
       parameters:
       - description: ID do personagem
@@ -408,35 +436,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Atualizar dados do personagem
-      tags:
-      - Character
-  /characters:
-    get:
-      description: Lista todos os personagens. Nome (busca parcial) e tipo são filtros
-        opcionais.
-      parameters:
-      - description: Filtrar por nome
-        in: query
-        name: name
-        type: string
-      - description: Filtrar por tipo
-        in: query
-        name: type
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/dto.CharacterResponse'
-            type: array
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-      summary: Listar personagens
       tags:
       - Character
   /events:

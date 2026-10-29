@@ -50,15 +50,17 @@ func (h *GuideHandler) CreateGuide(c *gin.Context) {
 		Description: input.Description,
 		Link:        input.Link,
 		CharacterID: input.CharacterID,
-		UserID:      uint(claims.UserID), // Supondo que você tenha um middleware que adiciona o ID do usuário ao contexto
+		UserID:      uint(claims.UserID),
 	}
 
 	if err := h.guideService.CreateGuide(c.Request.Context(), &guide); err != nil {
-		if errors.Is(err, gorm.ErrForeignKeyViolated) {
-			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "personagem não existe"})
-			return
+		switch {
+		case errors.Is(err, services.ErrCharacterNotFound),
+			errors.Is(err, gorm.ErrForeignKeyViolated):
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "personagem não encontrado"})
+		default:
+			internalError(c, "Guide", "CreateGuide", err)
 		}
-		internalError(c, "Guide", "CreateGuide", err)
 		return
 	}
 
@@ -147,12 +149,20 @@ func (h *GuideHandler) UpdateGuide(c *gin.Context) {
 	}
 
 	claims := middleware.GetClaims(c)
-	if claims == nil {
-		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "Não autenticado"})
+
+	guide, err := h.guideService.GetGuideById(c.Request.Context(), uriInput.ID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "guia não encontrado"})
+			return
+		}
+		internalError(c, "Guide", "UpdateGuide", err)
 		return
 	}
-	if models.Role(claims.Role) != models.RoleAdmin && uint(claims.UserID) != uint(uriInput.ID) {
-		c.JSON(http.StatusForbidden, dto.ErrorResponse{Error: "Você so pode editar seu proprio guia"})
+
+	if models.Role(claims.Role) != models.RoleAdmin && guide.UserID != uint(claims.UserID) {
+		c.JSON(http.StatusForbidden, dto.ErrorResponse{Error: "você só pode editar seus próprios guias"})
+		return
 	}
 
 	if err := c.ShouldBindJSON(&bodyInput); err != nil {
@@ -175,8 +185,6 @@ func (h *GuideHandler) UpdateGuide(c *gin.Context) {
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "guia não encontrado"})
 		case errors.Is(err, services.ErrNoUpdateData):
 			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
-		case errors.Is(err, services.ErrCharacterExists):
-			c.JSON(http.StatusConflict, dto.ErrorResponse{Error: err.Error()})
 		default:
 			internalError(c, "Character", "UpdateCharacter", err)
 		}
@@ -192,7 +200,7 @@ func (h *GuideHandler) UpdateGuide(c *gin.Context) {
 // @Tags         Guide
 // @Produce      json
 // @Param        title  query     string  false  "Filtrar por título"
-// @Param        page   query     int     false  "Página"           default(1)  minimum(1)
+// @Param        page   query     int     false  "Página"            default(1)  minimum(1)
 // @Param        limit  query     int     false  "Itens por página"  default(20) minimum(1) maximum(100)
 // @Success      200    {object}  dto.PageResponse[dto.GuideResponse]
 // @Failure      400    {object}  dto.ErrorResponse

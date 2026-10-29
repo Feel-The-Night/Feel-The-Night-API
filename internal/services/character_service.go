@@ -55,6 +55,17 @@ func (s *CharacterService) GetCharacterById(ctx context.Context, id uint) (*mode
 }
 
 func (s *CharacterService) DeleteCharacterById(ctx context.Context, id uint) error {
+	var count int64
+	if err := s.db.WithContext(ctx).
+		Model(&models.Guide{}).
+		Where("character_id = ?", id).
+		Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return ErrCharacterHasGuides
+	}
+
 	result := s.db.WithContext(ctx).Delete(&models.Character{}, id)
 	if result.Error != nil {
 		return result.Error

@@ -18,7 +18,20 @@ func NewGuideService(db *gorm.DB) *GuideService {
 
 func (s *GuideService) CreateGuide(ctx context.Context, guide *models.Guide) error {
 	// CreatedAt o GORM preenche sozinho; Likes/Dislikes têm default 0 no model
+	var count int64
+	if err := s.db.WithContext(ctx).
+		Model(&models.Character{}).
+		Where("Character_id = ?", guide.CharacterID).
+		Count(&count).Error; err != nil {
+		return err
+	}
+	if count == 0 {
+		return ErrCharacterNotFound
+	}
+
 	return s.db.WithContext(ctx).Create(guide).Error
+
+	// return s.db.WithContext(ctx).Create(guide).Error
 }
 
 func (s *GuideService) GetGuideById(ctx context.Context, id uint) (*models.Guide, error) {

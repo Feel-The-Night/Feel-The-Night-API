@@ -61,7 +61,48 @@ const docTemplate = `{
                 }
             }
         },
-        "/character": {
+        "/characters": {
+            "get": {
+                "description": "Lista todos os personagens. Nome (busca parcial) e tipo são filtros opcionais.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Character"
+                ],
+                "summary": "Listar personagens",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filtrar por nome",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filtrar por tipo",
+                        "name": "type",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.CharacterResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -100,7 +141,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/character/{id}": {
+        "/characters/{id}": {
             "get": {
                 "produces": [
                     "application/json"
@@ -203,49 +244,6 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/dto.CharacterResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/characters": {
-            "get": {
-                "description": "Lista todos os personagens. Nome (busca parcial) e tipo são filtros opcionais.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Character"
-                ],
-                "summary": "Listar personagens",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filtrar por nome",
-                        "name": "name",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filtrar por tipo",
-                        "name": "type",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/dto.CharacterResponse"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
