@@ -2,11 +2,13 @@ package handler
 
 import (
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"golang.org/x/time/rate"
 	"gorm.io/gorm"
 
 	_ "github.com/kisalto/Feel-The-Night-Swagger/docs"
@@ -27,6 +29,12 @@ func SetupRoutes(
 	router.Use(middleware.CorsMiddleware())
 	router.Use(middleware.Timeout(10 * time.Second))
 
+	if os.Getenv("APP_ENV") == "production" {
+		_ = router.SetTrustedProxies([]string{ /* ... */ })
+	} else {
+		_ = router.SetTrustedProxies(nil)
+	}
+
 	// Permissions Middleware
 	logged := middleware.RequireAuth()
 	creators := middleware.RequireRole(models.RoleVeteran, models.RoleAdmin)
@@ -35,18 +43,20 @@ func SetupRoutes(
 	// Swagger routes
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
+	authLimiter := middleware.NewIpRateLimiter(rate.Every(12*time.Second), 5)
+
 	// Rotas gerais
 	general := router.Group("/")
 	{
 		general.GET("/health", HealthCheckHandler)
-		general.POST("/auth/login", authHandler.Login)
+		general.POST("/auth/login", authLimiter.Middleware(), authHandler.Login)
 		// router.POST("/refresh")
 	}
 
 	// Rotas de Usuários
 	users := router.Group("/users")
 	{
-		users.POST("", userHandler.CreateUser)
+		users.POST("", authLimiter.Middleware(), userHandler.CreateUser)
 		users.GET("", logged, admin, userHandler.GetUserByEmail)
 		// GetUserByID vai desaparecer, mas fica ai por enquanto
 		users.GET("/:id", userHandler.GetUserById)

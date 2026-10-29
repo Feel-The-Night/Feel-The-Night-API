@@ -146,6 +146,15 @@ func (h *GuideHandler) UpdateGuide(c *gin.Context) {
 		return
 	}
 
+	claims := middleware.GetClaims(c)
+	if claims == nil {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "Não autenticado"})
+		return
+	}
+	if models.Role(claims.Role) != models.RoleAdmin && uint(claims.UserID) != uint(uriInput.ID) {
+		c.JSON(http.StatusForbidden, dto.ErrorResponse{Error: "Você so pode editar seu proprio guia"})
+	}
+
 	if err := c.ShouldBindJSON(&bodyInput); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "corpo da requisição inválido"})
 		return
