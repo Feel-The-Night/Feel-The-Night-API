@@ -263,9 +263,46 @@ O `AutoMigrate` é prático em desenvolvimento, mas nunca remove colunas. Para p
 
 ## Testes
 
+Os testes de unidade ficam ao lado do código que testam (arquivos `*_test.go`) e não precisam de banco nem de Docker. Hoje cobrem:
+
+- `internal/platform/jwt`: geração e validação de tokens (inclusive que um refresh token não passa como access token, e vice-versa);
+- `internal/platform/middleware`: autenticação e checagem de papéis;
+- `internal/platform/database`: escape de texto para buscas com `ILIKE`;
+- `internal/event`: conversão de datas no formato `AAAA-MM-DD`.
+
+### Rodar
+
 ```bash
-go test ./...
+go test ./...              # todos os testes
+go test ./... -v           # mostra o nome e o resultado de cada teste
+go test ./... -race        # detecta acesso concorrente sem lock (ex.: rate limiter)
+go test ./... -cover       # mostra a cobertura por pacote
+go test ./internal/platform/jwt/   # só um pacote
 ```
+
+### Durante o desenvolvimento
+
+Os testes **não** rodam no `air`, de propósito: o air recompila a cada save e esperar os testes deixaria o reload lento. Para acompanhar os testes enquanto programa, use o `gotestsum` num terminal separado:
+
+```bash
+go install gotest.tools/gotestsum@latest
+gotestsum --watch
+```
+
+Ele roda novamente os testes do pacote que você alterou, sem interferir na API.
+
+### Antes de enviar código
+
+Rode `go test ./...` antes de commitar. Para não esquecer, dá para criar um hook de git que roda os testes antes de todo `git push` e cancela o push se algum falhar. Crie o arquivo `.git/hooks/pre-push`:
+
+```bash
+#!/bin/sh
+go test ./... || exit 1
+```
+
+No Linux/macOS, dê permissão de execução com `chmod +x .git/hooks/pre-push`. Hooks ficam só na sua máquina (não são versionados), então cada pessoa do time precisa criar o seu.
+
+### Dados de exemplo
 
 Para popular uma API local com dados de exemplo:
 
