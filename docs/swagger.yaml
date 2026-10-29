@@ -10,6 +10,13 @@ definitions:
     - email
     - password
     type: object
+  auth.RefreshRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
   auth.TokenResponse:
     properties:
       access_token:
@@ -315,6 +322,37 @@ paths:
           schema:
             $ref: '#/definitions/httpx.ErrorResponse'
       summary: Login
+      tags:
+      - Auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Troca um refresh token válido por um novo par de access e refresh
+        token.
+      parameters:
+      - description: Refresh token
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/auth.RefreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.TokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httpx.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httpx.ErrorResponse'
+      summary: Renovar tokens
       tags:
       - Auth
   /characters:

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/models"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/platform/httpx"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/platform/jwt"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/user"
@@ -63,24 +64,79 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	accessToken, err := jwt.GenerateAccessToken(int64(user.UserID), user.Email, user.Nickname, string(user.Role))
+	resp, err := issueToken(user)
 	if err != nil {
-		zap.L().Error("[AuthHandler] Login: erro ao gerar access token", zap.Error(err))
+		zap.L().Error("[AuthHandler] Login: erro ao gerar tokens", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, httpx.ErrorResponse{Error: "erro interno"})
 		return
 	}
 
-	refreshToken, err := jwt.GenerateRefreshToken(int64(user.UserID))
-	if err != nil {
-		zap.L().Error("[AuthHandler] Login: erro ao gerar refresh token", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, httpx.ErrorResponse{Error: "erro interno"})
+	c.JSON(http.StatusOK, resp)
+}
+
+// Refresh godoc
+// @Summary      Renovar tokens
+// @Description  Troca um refresh token válido por um novo par de access e refresh token.
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        body  body      RefreshRequest  true  "Refresh token"
+// @Success      200   {object}  TokenResponse
+// @Failure      400   {object}  httpx.ErrorResponse
+// @Failure      401   {object}  httpx.ErrorResponse
+// @Router       /auth/refresh [post]
+func (h *Handler) Refresh(c *gin.Context) {
+	httpx.LogRequest(c, "Auth", "Refresh")
+
+	var input RefreshRequest
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "refresh_token é obrigatório"})
 		return
 	}
 
-	c.JSON(http.StatusOK, TokenResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
+	claims, err := jwt.ValidateRefreshToken(input.RefreshToken)
+	if err != nil {
+		msg := "refresh token inválido"
+		if errors.Is(err, jwt.ErrExpiredToken) {
+			msg = "refresh token expired. login again"
+		}
+		c.JSON(http.StatusUnauthorized, httpx.ErrorResponse{Error: msg})
+		return
+	}
+
+	u, err := h.userService.GetUserById(c.Request.Context(), uint(claims.UserID))
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusUnauthorized, httpx.ErrorResponse{Error: "refresh token inválido"})
+			return
+		}
+		httpx.InternalError(c, "Auth", "Refresh", err)
+		return
+	}
+
+	resp, err := issueToken(u)
+	if err != nil {
+		httpx.InternalError(c, "Auth", "Refresh", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+
+}
+
+func issueToken(u *models.User) (TokenResponse, error) {
+	access, err := jwt.GenerateAccessToken(int64(u.UserID), u.Email, u.Nickname, string(u.Role))
+	if err != nil {
+		return TokenResponse{}, err
+	}
+	refresh, err := jwt.GenerateRefreshToken(int64(u.UserID))
+	if err != nil {
+		return TokenResponse{}, err
+	}
+	return TokenResponse{
+		AccessToken:  access,
+		RefreshToken: refresh,
 		TokenType:    "Bearer",
 		ExpiresIn:    int64(jwt.AccessTokenDuration.Seconds()),
-	})
+	}, nil
 }
