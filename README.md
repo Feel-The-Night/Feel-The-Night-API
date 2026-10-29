@@ -70,6 +70,7 @@ Feel-The-Night-Swagger/
 │       ├── jwt/                 # geração e validação de tokens
 │       └── middleware/          # autenticação, roles, CORS, timeout e rate limit
 ├── tests/
+│   ├── integration/             # testes de integração (API + Postgres em container)
 │   └── seed_models.py           # script que popula a API com dados de exemplo
 ├── .air.toml
 ├── .env.example
@@ -362,7 +363,9 @@ As exclusões são **soft delete**: o registro recebe uma data em `deleted_at` e
 
 ## Testes
 
-Os testes de unidade ficam ao lado do código que testam (arquivos `*_test.go`) e não precisam de banco nem de Docker. Hoje cobrem:
+O projeto tem dois tipos de teste: os de **unidade**, que rodam sem banco nem Docker, e os de **integração**, que testam a API inteira contra um PostgreSQL real.
+
+Os testes de unidade ficam ao lado do código que testam (arquivos `*_test.go`). Hoje cobrem:
 
 - `internal/platform/jwt`: geração e validação de tokens (inclusive que um refresh token não passa como access token, e vice-versa);
 - `internal/platform/middleware`: autenticação e checagem de papéis;
@@ -378,6 +381,28 @@ go test ./... -race        # detecta acesso concorrente sem lock (ex.: rate limi
 go test ./... -cover       # mostra a cobertura por pacote
 go test ./internal/platform/jwt/   # só um pacote
 ```
+
+### Testes de integração
+
+Ficam em `tests/integration/` e testam a API inteira: sobem um PostgreSQL de verdade num container (via [testcontainers-go](https://golang.testcontainers.org/)), aplicam as migrations, montam o router com `app.NewRouter` e fazem requisições HTTP com `httptest`. Cobrem as regras que só aparecem com banco e permissões juntos:
+
+- um veterano não edita o guia de outro (403), mas o autor e o admin editam;
+- personagem com guias vinculados não pode ser deletado (409);
+- guia com personagem inexistente é recusado (400);
+- iniciante não cria conteúdo (403);
+- o rate limit bloqueia a 6ª tentativa de login seguida do mesmo IP (429).
+
+Precisam do **Docker rodando**. Como têm a build tag `integration`, não entram no `go test ./...` comum; rode com:
+
+```bash
+go test -tags=integration ./tests/... -v
+```
+
+A primeira execução baixa a imagem do Postgres e demora mais; as seguintes levam alguns segundos. O container é criado e destruído automaticamente a cada execução.
+
+Os helpers enviam cada requisição com um IP diferente, para o rate limiter não interferir entre testes. Cada teste usa emails próprios, porque todos compartilham o mesmo banco.
+
+**VS Code:** por causa da build tag, o editor ignora esses arquivos por padrão. O `.vscode/settings.json` do projeto já ativa a tag (`gopls.buildFlags` e `go.testTags`); se o editor ainda mostrar "No packages found", rode `Go: Restart Language Server`.
 
 ### Durante o desenvolvimento
 
