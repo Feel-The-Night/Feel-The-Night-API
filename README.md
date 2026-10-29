@@ -11,6 +11,7 @@ Backend REST do projeto **Feel The Night**, uma plataforma de conteúdo para a c
 - [Instalação](#instalação)
 - [Configuração da Env](#configuração-da-env)
 - [Rodando a Aplicação](#rodando-a-aplicação)
+- [Rodando com Docker](#rodando-com-docker)
 - [Documentação Swagger](#documentação-swagger)
 - [Autenticação e Permissões](#autenticação-e-permissões)
 - [Endpoints](#endpoints)
@@ -37,6 +38,7 @@ Ela é escrita em Go com Gin (HTTP), GORM (PostgreSQL) e Swaggo (documentação 
 - zap (logs estruturados)
 - godotenv
 - Air (hot reload em desenvolvimento)
+- Docker / Docker Compose
 - testify (testes)
 
 ## Estrutura do Repositório
@@ -68,9 +70,13 @@ Feel-The-Night-Swagger/
 │       ├── jwt/                 # geração e validação de tokens
 │       └── middleware/          # autenticação, roles, CORS, timeout e rate limit
 ├── tests/
+│   ├── integration/             # testes de integração (API + Postgres em container)
 │   └── seed_models.py           # script que popula a API com dados de exemplo
 ├── .air.toml
 ├── .env.example
+├── .dockerignore
+├── Dockerfile
+├── docker-compose.yml
 ├── go.mod
 ├── go.sum
 └── README.md
@@ -81,9 +87,10 @@ As dependências seguem uma direção só: `cmd/api → app → features → pla
 ## Pré-requisitos
 
 - Go (o `go.mod` está configurado com `go 1.27.1`)
-- PostgreSQL em execução
+- PostgreSQL em execução (ou Docker: veja [Rodando com Docker](#rodando-com-docker))
 - Git
 - Opcional: [Air](https://github.com/air-verse/air) e [Swag](https://github.com/swaggo/swag)
+- Opcional: Docker com Compose (Docker Desktop no Windows)
 - Opcional: Python 3, para rodar o script de seed
 
 ## Instalação
@@ -154,6 +161,58 @@ Build:
 
 ```bash
 go build -o ./bin/api ./cmd/api
+```
+
+## Rodando com Docker
+
+O projeto tem um `Dockerfile` (build em duas etapas: compila com a imagem do Go e copia só o binário para uma imagem Alpine mínima, rodando sem root) e um `docker-compose.yml` que sobe a API junto com o PostgreSQL.
+
+Pré-requisito: Docker com Compose (no Windows, o Docker Desktop).
+
+### Ambiente completo (API + banco)
+
+Com o `.env` criado (veja [Configuração da Env](#configuração-da-env)):
+
+```bash
+docker compose up --build
+```
+
+O compose sobe o Postgres, espera ele ficar pronto (healthcheck) e então sobe a API, que aplica as migrations e fica disponível em `http://localhost:8080` (Swagger em `/swagger/index.html`).
+
+- A API lê o seu `.env` (`JWT_SECRET`, `CORS_ORIGINS`...), mas as variáveis `DB_*` são definidas pelo próprio compose, apontando para o serviço `db`.
+- O `.env` não entra na imagem (está no `.dockerignore`); os segredos são passados só na execução.
+- O container roda o binário compilado no build: depois de alterar o código, rode `docker compose up --build` de novo.
+
+Comandos úteis:
+
+| Comando | O que faz |
+|---|---|
+| `docker compose up --build` | Recompila a API e sobe tudo |
+| `docker compose up -d` | Sobe em segundo plano |
+| `docker compose logs -f api` | Acompanha os logs da API |
+| `docker compose down` | Derruba os containers (mantém os dados do banco) |
+| `docker compose down -v` | Derruba e **apaga** o banco |
+
+Para promover o primeiro admin no banco do container:
+
+```bash
+docker compose exec db psql -U postgres -d feel_the_night -c "UPDATE users SET role = 'admin' WHERE email = 'seu@email.com';"
+```
+
+### Só o banco no Docker (recomendado para desenvolver)
+
+Para manter o hot reload do `air`, rode apenas o Postgres no Docker e a API na sua máquina:
+
+```bash
+docker compose up -d db
+air
+```
+
+O banco do container fica exposto na porta **5433** (para não conflitar com um Postgres local), então no `.env` use:
+
+```env
+DB_HOST=localhost
+DB_PORT=5433
 ```
 
 ## Documentação Swagger
@@ -304,7 +363,9 @@ As exclusões são **soft delete**: o registro recebe uma data em `deleted_at` e
 
 ## Testes
 
-Os testes de unidade ficam ao lado do código que testam (arquivos `*_test.go`) e não precisam de banco nem de Docker. Hoje cobrem:
+O projeto tem dois tipos de teste: os de **unidade**, que rodam sem banco nem Docker, e os de **integração**, que testam a API inteira contra um PostgreSQL real.
+
+Os testes de unidade ficam ao lado do código que testam (arquivos `*_test.go`). Hoje cobrem:
 
 - `internal/platform/jwt`: geração e validação de tokens (inclusive que um refresh token não passa como access token, e vice-versa);
 - `internal/platform/middleware`: autenticação e checagem de papéis;
@@ -320,6 +381,28 @@ go test ./... -race        # detecta acesso concorrente sem lock (ex.: rate limi
 go test ./... -cover       # mostra a cobertura por pacote
 go test ./internal/platform/jwt/   # só um pacote
 ```
+
+### Testes de integração
+
+Ficam em `tests/integration/` e testam a API inteira: sobem um PostgreSQL de verdade num container (via [testcontainers-go](https://golang.testcontainers.org/)), aplicam as migrations, montam o router com `app.NewRouter` e fazem requisições HTTP com `httptest`. Cobrem as regras que só aparecem com banco e permissões juntos:
+
+- um veterano não edita o guia de outro (403), mas o autor e o admin editam;
+- personagem com guias vinculados não pode ser deletado (409);
+- guia com personagem inexistente é recusado (400);
+- iniciante não cria conteúdo (403);
+- o rate limit bloqueia a 6ª tentativa de login seguida do mesmo IP (429).
+
+Precisam do **Docker rodando**. Como têm a build tag `integration`, não entram no `go test ./...` comum; rode com:
+
+```bash
+go test -tags=integration ./tests/... -v
+```
+
+A primeira execução baixa a imagem do Postgres e demora mais; as seguintes levam alguns segundos. O container é criado e destruído automaticamente a cada execução.
+
+Os helpers enviam cada requisição com um IP diferente, para o rate limiter não interferir entre testes. Cada teste usa emails próprios, porque todos compartilham o mesmo banco.
+
+**VS Code:** por causa da build tag, o editor ignora esses arquivos por padrão. O `.vscode/settings.json` do projeto já ativa a tag (`gopls.buildFlags` e `go.testTags`); se o editor ainda mostrar "No packages found", rode `Go: Restart Language Server`.
 
 ### Durante o desenvolvimento
 

@@ -3,12 +3,15 @@ package database
 import (
 	"embed"
 	"fmt"
+	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/pressly/goose/v3"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/models"
 )
@@ -33,6 +36,14 @@ func Connect() (*gorm.DB, error) {
 	}), &gorm.Config{
 		TranslateError:                           true,
 		DisableForeignKeyConstraintWhenMigrating: true,
+		Logger: logger.New(
+			log.New(os.Stdout, "", log.LstdFlags),
+			logger.Config{
+				SlowThreshold:             200 * time.Millisecond,
+				LogLevel:                  logger.Warn,
+				IgnoreRecordNotFoundError: true,
+			},
+		),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("falha ao conectar no banco de dados: %w", err)
