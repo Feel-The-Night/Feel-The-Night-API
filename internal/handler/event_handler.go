@@ -199,7 +199,7 @@ func (h *EventHandler) UpdateEvent(c *gin.Context) {
 // @Param        title  query     string  false  "Filtrar por título"
 // @Param        page   query     int     false  "Página"           default(1)  minimum(1)
 // @Param        limit  query     int     false  "Itens por página"  default(20) minimum(1) maximum(100)
-// @Success      200  {object}  dto.PageResponse[dto.EventResponse]
+// @Success      200    {list}    dto.PageResponse[dto.EventResponse]
 // @Router       /events [get]
 func (h *EventHandler) GetEvents(c *gin.Context) {
 	logRequest(c, "Event", "GetEvents")

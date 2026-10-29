@@ -89,7 +89,7 @@ func (s *GuideService) UpdateGuide(ctx context.Context, id uint, guide *models.G
 	}
 
 	if len(updates) == 0 {
-		return existingGuide, nil
+		return nil, ErrNoUpdateData
 	}
 
 	if err := s.db.WithContext(ctx).Model(existingGuide).Updates(updates).Error; err != nil {

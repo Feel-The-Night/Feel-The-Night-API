@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/dto"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/middleware"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/models"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/services"
 )
@@ -141,6 +142,12 @@ func (h *CharacterHandler) UpdateCharacter(c *gin.Context) {
 		return
 	}
 
+	claims := middleware.GetClaims(c)
+	if claims == nil {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "Não autenticado"})
+		return
+	}
+
 	if err := c.ShouldBindJSON(&bodyInput); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "corpo da requisição inválido"})
 		return
@@ -177,7 +184,7 @@ func (h *CharacterHandler) UpdateCharacter(c *gin.Context) {
 // @Tags         Character
 // @Produce      json
 // @Param        name   query     string  false  "Filtrar por Nome"
-// @Success      200    {object}  dto.CharacterResponse
+// @Success      200    {list}    dto.CharacterResponse
 // @Failure      400    {object}  dto.ErrorResponse
 // @Router       /character [get]
 func (h *CharacterHandler) GetCharacters(c *gin.Context) {

@@ -59,12 +59,12 @@ definitions:
         minimum: 1
         type: integer
       description:
-        maxLength: 50
+        maxLength: 2083
         type: string
       link:
         type: string
       title:
-        maxLength: 20
+        maxLength: 254
         type: string
       type:
         maxLength: 15
@@ -97,9 +97,6 @@ definitions:
     properties:
       error:
         example: o recurso solicitado não foi encontrado
-        type: string
-      error_name:
-        example: recurso não encontrado
         type: string
     type: object
   dto.EventResponse:
@@ -153,19 +150,6 @@ definitions:
     required:
     - email
     - password
-    type: object
-  dto.PageResponse-dto_EventResponse:
-    properties:
-      data:
-        items:
-          $ref: '#/definitions/dto.EventResponse'
-        type: array
-      limit:
-        type: integer
-      page:
-        type: integer
-      total:
-        type: integer
     type: object
   dto.PageResponse-dto_GuideResponse:
     properties:
@@ -241,12 +225,12 @@ definitions:
       banner_url:
         type: string
       description:
-        maxLength: 50
+        maxLength: 2083
         type: string
       link:
         type: string
       title:
-        maxLength: 20
+        maxLength: 254
         type: string
       type:
         maxLength: 15
@@ -335,7 +319,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.CharacterResponse'
+            type: list
         "400":
           description: Bad Request
           schema:
@@ -462,7 +446,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.PageResponse-dto_EventResponse'
+            type: list
       summary: listar eventos
       tags:
       - Event

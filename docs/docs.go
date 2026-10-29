@@ -83,7 +83,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.CharacterResponse"
+                            "type": "list"
                         }
                     },
                     "400": {
@@ -279,7 +279,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PageResponse-dto_EventResponse"
+                            "type": "list"
                         }
                     }
                 }
@@ -934,14 +934,14 @@ const docTemplate = `{
                 },
                 "description": {
                     "type": "string",
-                    "maxLength": 50
+                    "maxLength": 2083
                 },
                 "link": {
                     "type": "string"
                 },
                 "title": {
                     "type": "string",
-                    "maxLength": 20
+                    "maxLength": 254
                 },
                 "type": {
                     "type": "string",
@@ -981,10 +981,6 @@ const docTemplate = `{
                 "error": {
                     "type": "string",
                     "example": "o recurso solicitado não foi encontrado"
-                },
-                "error_name": {
-                    "type": "string",
-                    "example": "recurso não encontrado"
                 }
             }
         },
@@ -1063,26 +1059,6 @@ const docTemplate = `{
                 },
                 "password": {
                     "type": "string"
-                }
-            }
-        },
-        "dto.PageResponse-dto_EventResponse": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/dto.EventResponse"
-                    }
-                },
-                "limit": {
-                    "type": "integer"
-                },
-                "page": {
-                    "type": "integer"
-                },
-                "total": {
-                    "type": "integer"
                 }
             }
         },
@@ -1196,14 +1172,14 @@ const docTemplate = `{
                 },
                 "description": {
                     "type": "string",
-                    "maxLength": 50
+                    "maxLength": 2083
                 },
                 "link": {
                     "type": "string"
                 },
                 "title": {
                     "type": "string",
-                    "maxLength": 20
+                    "maxLength": 254
                 },
                 "type": {
                     "type": "string",

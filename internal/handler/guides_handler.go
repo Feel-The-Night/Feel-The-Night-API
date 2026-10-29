@@ -170,15 +170,16 @@ func (h *GuideHandler) UpdateGuide(c *gin.Context) {
 
 	updatedGuide, err := h.guideService.UpdateGuide(c.Request.Context(), uriInput.ID, &guideModel)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		switch {
+		case errors.Is(err, gorm.ErrRecordNotFound):
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "guia não encontrado"})
-			return
-		}
-		if err.Error() == "nenhum dado recebido para atualização" {
+		case errors.Is(err, services.ErrNoUpdateData):
 			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
-			return
+		case errors.Is(err, services.ErrCharacterExists):
+			c.JSON(http.StatusConflict, dto.ErrorResponse{Error: err.Error()})
+		default:
+			internalError(c, "Character", "UpdateCharacter", err)
 		}
-		internalError(c, "Guide", "UpdateGuide", err)
 		return
 	}
 
