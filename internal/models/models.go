@@ -120,15 +120,3 @@ type LastEvent struct {
 }
 
 func (LastEvent) TableName() string { return "last_events" }
-
-// Access roles
-// type Role struct {
-// 	ID       int      `gorm:"primaryKey"`
-// 	Name     string   `gorm:"size:50;not null;unique"`
-// 	Accesses []Access `gorm:"many2many:role_access;"`
-// }
-
-type Access struct {
-	AccessID   int `gorm:"primaryKey"`
-	AccessName string
-}

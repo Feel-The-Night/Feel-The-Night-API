@@ -63,7 +63,7 @@ Feel-The-Night-Swagger/
 │   │   └── models.go            # structs do GORM (compartilhadas entre as features)
 │   └── platform/                # infraestrutura, sem regra de negócio
 │       ├── apperr/              # erros compartilhados (ex.: ErrNoUpdateData)
-│       ├── database/            # conexão, AutoMigrate, FKs e EscapeLike
+│       ├── database/            # conexão, migrations (Goose) e EscapeLike
 │       ├── httpx/               # ErrorResponse, PageResponse e helpers de resposta/log
 │       ├── jwt/                 # geração e validação de tokens
 │       └── middleware/          # autenticação, roles, CORS, timeout e rate limit
@@ -105,6 +105,7 @@ Ferramentas opcionais:
 ```bash
 go install github.com/air-verse/air@latest
 go install github.com/swaggo/swag/cmd/swag@latest
+go install github.com/pressly/goose/v3/cmd/goose@latest
 ```
 
 ## Configuração da Env
@@ -252,14 +253,54 @@ Datas de evento usam o formato `AAAA-MM-DD`.
 
 ## Banco de Dados
 
-A conexão é feita na subida da aplicação, com as variáveis `DB_*`. Ao iniciar, a API:
+A conexão é feita na subida da aplicação, com as variáveis `DB_*`. O schema é controlado por **migrations versionadas** com o [Goose](https://github.com/pressly/goose): cada mudança no banco é um arquivo `.sql` numerado em `internal/platform/database/migrations/`.
 
-1. roda o `AutoMigrate` do GORM para todos os models de `internal/models`;
-2. cria as foreign keys entre as tabelas (guias → usuários e personagens, eventos → usuários), caso ainda não existam.
+Ao iniciar, a API aplica automaticamente as migrations que ainda não rodaram naquele banco. O Goose registra as versões aplicadas na tabela `goose_db_version`, então cada migration roda uma única vez.
 
-As exclusões são **soft delete**: o registro recebe uma data em `deleted_at` e deixa de aparecer nas consultas, mas continua na tabela.
+As migrations são embutidas no binário (`//go:embed`), então o deploy não precisa copiar a pasta.
 
-O `AutoMigrate` é prático em desenvolvimento, mas nunca remove colunas. Para produção com dados reais, o recomendado é migrar para migrations versionadas.
+### Criando uma migration
+
+Instale a CLI do Goose (uma vez):
+
+```bash
+go install github.com/pressly/goose/v3/cmd/goose@latest
+```
+
+Gere o arquivo na raiz do projeto (`-s` usa numeração sequencial: `00002`, `00003`...):
+
+```bash
+goose -s -dir internal/platform/database/migrations create add_views_to_guides sql
+```
+
+Preencha os dois blocos do arquivo gerado:
+
+```sql
+-- +goose Up
+ALTER TABLE guides ADD COLUMN views BIGINT NOT NULL DEFAULT 0;
+
+-- +goose Down
+ALTER TABLE guides DROP COLUMN views;
+```
+
+- `Up` é a mudança; `Down` é como desfazê-la.
+- Na próxima subida, a API aplica a migration nova.
+- Se a mudança afeta um model, atualize também o struct em `internal/models/models.go`.
+
+Regras:
+
+- **Nunca edite uma migration que já foi aplicada.** Ela não roda de novo; para corrigir algo, crie uma migration nova.
+- As migrations são a fonte da verdade do schema. As tags do GORM nos models não criam nem alteram tabelas.
+
+### Consultando o estado
+
+```bash
+goose -dir internal/platform/database/migrations postgres "host=localhost user=postgres password=postgres dbname=feel_the_night sslmode=disable" status
+```
+
+### Soft delete
+
+As exclusões são **soft delete**: o registro recebe uma data em `deleted_at` e deixa de aparecer nas consultas, mas continua na tabela. Por isso os índices únicos (email de usuário, nome de personagem) valem apenas entre registros não deletados.
 
 ## Testes
 
