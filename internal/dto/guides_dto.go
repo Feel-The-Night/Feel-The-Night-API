@@ -7,10 +7,10 @@ import (
 // CreateGuideInput representa os dados para criação de um guia.
 // O autor (UserID) vem do token, não do body.
 type CreateGuideInput struct {
-	Title       string `json:"title" binding:"required,max=20"`
+	Title       string `json:"title" binding:"required,max=254"`
 	BannerURL   string `json:"banner_url" binding:"omitempty,url"`
 	Type        string `json:"type" binding:"omitempty,max=15"`
-	Description string `json:"description" binding:"required,max=50"`
+	Description string `json:"description" binding:"required,max=2083"`
 	Link        string `json:"link" binding:"omitempty,url"`
 	CharacterID uint   `json:"character_id" binding:"required,min=1"`
 }
@@ -29,10 +29,10 @@ type GuideListQuery struct {
 
 // UpdateGuideInput representa os campos opcionais para atualização (PATCH) de guia.
 type UpdateGuideInput struct {
-	Title       string `json:"title" binding:"omitempty,max=20"`
+	Title       string `json:"title" binding:"omitempty,max=254"`
 	BannerURL   string `json:"banner_url" binding:"omitempty,url"`
 	Type        string `json:"type" binding:"omitempty,max=15"`
-	Description string `json:"description" binding:"omitempty,max=50"`
+	Description string `json:"description" binding:"omitempty,max=2083"`
 	Link        string `json:"link" binding:"omitempty,url"`
 }
 
@@ -49,11 +49,4 @@ type GuideResponse struct {
 	Dislikes     int       `json:"dislikes"`
 	UserID       uint      `json:"user_id"`
 	CharacterID  uint      `json:"character_id"`
-}
-
-type GuidePageResponse struct {
-	Data  []GuideResponse `json:"data"`
-	Page  int             `json:"page"`
-	Limit int             `json:"limit"`
-	Total int64           `json:"total"`
 }

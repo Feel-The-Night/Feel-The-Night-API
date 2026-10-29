@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 
 	dto "github.com/kisalto/Feel-The-Night-Swagger/internal/dto"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/middleware"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/models"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/services"
 )
@@ -35,6 +36,7 @@ func (h *GuideHandler) CreateGuide(c *gin.Context) {
 	logRequest(c, "Guide", "CreateGuide")
 
 	var input dto.CreateGuideInput
+	claims := middleware.GetClaims(c)
 
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
@@ -48,10 +50,17 @@ func (h *GuideHandler) CreateGuide(c *gin.Context) {
 		Description: input.Description,
 		Link:        input.Link,
 		CharacterID: input.CharacterID,
+		UserID:      uint(claims.UserID),
 	}
 
 	if err := h.guideService.CreateGuide(c.Request.Context(), &guide); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
+		switch {
+		case errors.Is(err, services.ErrCharacterNotFound),
+			errors.Is(err, gorm.ErrForeignKeyViolated):
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "personagem não encontrado"})
+		default:
+			internalError(c, "Guide", "CreateGuide", err)
+		}
 		return
 	}
 
@@ -139,6 +148,23 @@ func (h *GuideHandler) UpdateGuide(c *gin.Context) {
 		return
 	}
 
+	claims := middleware.GetClaims(c)
+
+	guide, err := h.guideService.GetGuideById(c.Request.Context(), uriInput.ID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "guia não encontrado"})
+			return
+		}
+		internalError(c, "Guide", "UpdateGuide", err)
+		return
+	}
+
+	if models.Role(claims.Role) != models.RoleAdmin && guide.UserID != uint(claims.UserID) {
+		c.JSON(http.StatusForbidden, dto.ErrorResponse{Error: "você só pode editar seus próprios guias"})
+		return
+	}
+
 	if err := c.ShouldBindJSON(&bodyInput); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "corpo da requisição inválido"})
 		return
@@ -154,15 +180,14 @@ func (h *GuideHandler) UpdateGuide(c *gin.Context) {
 
 	updatedGuide, err := h.guideService.UpdateGuide(c.Request.Context(), uriInput.ID, &guideModel)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		switch {
+		case errors.Is(err, gorm.ErrRecordNotFound):
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "guia não encontrado"})
-			return
-		}
-		if err.Error() == "nenhum dado recebido para atualização" {
+		case errors.Is(err, services.ErrNoUpdateData):
 			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
-			return
+		default:
+			internalError(c, "Character", "UpdateCharacter", err)
 		}
-		internalError(c, "Guide", "UpdateGuide", err)
 		return
 	}
 
@@ -175,9 +200,9 @@ func (h *GuideHandler) UpdateGuide(c *gin.Context) {
 // @Tags         Guide
 // @Produce      json
 // @Param        title  query     string  false  "Filtrar por título"
-// @Param        page   query     int     false  "Página"           default(1)  minimum(1)
+// @Param        page   query     int     false  "Página"            default(1)  minimum(1)
 // @Param        limit  query     int     false  "Itens por página"  default(20) minimum(1) maximum(100)
-// @Success      200    {object}  dto.GuidePageResponse
+// @Success      200    {object}  dto.PageResponse[dto.GuideResponse]
 // @Failure      400    {object}  dto.ErrorResponse
 // @Router       /guides [get]
 func (h *GuideHandler) GetGuides(c *gin.Context) {
@@ -201,7 +226,7 @@ func (h *GuideHandler) GetGuides(c *gin.Context) {
 		data = append(data, toGuideResponse(&guides[i]))
 	}
 
-	c.JSON(http.StatusOK, dto.GuidePageResponse{
+	c.JSON(http.StatusOK, dto.PageResponse[dto.GuideResponse]{
 		Data:  data,
 		Page:  query.Page,
 		Limit: query.Limit,

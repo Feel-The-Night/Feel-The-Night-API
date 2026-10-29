@@ -39,9 +39,9 @@ func main() {
 		zap.L().Fatal("JWT_SECRET não configurado")
 	}
 
-	// if len(secret) < 32 {
-	// 	zap.L().Fatal("JWT_SECRET precisa ter pelo menos 32 caracteres")
-	// }
+	if len(secret) < 32 {
+		zap.L().Fatal("JWT_SECRET precisa ter pelo menos 32 caracteres")
+	}
 
 	// 1. Tratamento da Porta
 	port := os.Getenv("PORT")
@@ -67,12 +67,13 @@ func main() {
 
 	// 3. Conexão com o Banco de Dados
 	zap.L().Info("Iniciando conexão com o banco de dados...")
-	if err := database.Connect(); err != nil {
+	db, err := database.Connect()
+	if err != nil {
 		zap.L().Fatal("Erro crítico ao inicializar o banco", zap.Error(err))
 	}
 
 	// 4. Carrega Rotas
-	routes := handler.Setup()
+	routes := handler.Setup(db)
 
 	// 5. Inicia o Servidor
 	serverPort := fmt.Sprintf(":%s", port)

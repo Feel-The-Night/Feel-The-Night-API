@@ -2,14 +2,16 @@ package handler
 
 import (
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"golang.org/x/time/rate"
+	"gorm.io/gorm"
 
 	_ "github.com/kisalto/Feel-The-Night-Swagger/docs"
-	"github.com/kisalto/Feel-The-Night-Swagger/internal/database"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/middleware"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/models"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/services"
@@ -24,8 +26,14 @@ func SetupRoutes(
 	authHandler *AuthHandler,
 ) *gin.Engine {
 	router := gin.Default()
-
+	router.Use(middleware.CorsMiddleware())
 	router.Use(middleware.Timeout(10 * time.Second))
+
+	if os.Getenv("APP_ENV") == "production" {
+		_ = router.SetTrustedProxies([]string{ /* ... */ })
+	} else {
+		_ = router.SetTrustedProxies(nil)
+	}
 
 	// Permissions Middleware
 	logged := middleware.RequireAuth()
@@ -35,18 +43,20 @@ func SetupRoutes(
 	// Swagger routes
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
+	authLimiter := middleware.NewIpRateLimiter(rate.Every(12*time.Second), 5)
+
 	// Rotas gerais
 	general := router.Group("/")
 	{
 		general.GET("/health", HealthCheckHandler)
-		general.POST("/auth/login", authHandler.Login)
+		general.POST("/auth/login", authLimiter.Middleware(), authHandler.Login)
 		// router.POST("/refresh")
 	}
 
 	// Rotas de Usuários
 	users := router.Group("/users")
 	{
-		users.POST("", userHandler.CreateUser)
+		users.POST("", authLimiter.Middleware(), userHandler.CreateUser)
 		users.GET("", logged, admin, userHandler.GetUserByEmail)
 		// GetUserByID vai desaparecer, mas fica ai por enquanto
 		users.GET("/:id", userHandler.GetUserById)
@@ -55,7 +65,7 @@ func SetupRoutes(
 	}
 
 	// Rotas de Personagens
-	characters := router.Group("/character")
+	characters := router.Group("/characters")
 	{
 		characters.POST("", logged, creators, characterHandler.CreateCharacter)
 		characters.GET("", characterHandler.GetCharacters)
@@ -87,22 +97,22 @@ func SetupRoutes(
 	return router
 }
 
-func Setup() *gin.Engine {
+func Setup(db *gorm.DB) *gin.Engine {
 	// Inicialização de serviços e handlers
 	// User
-	userService := services.NewUserService(database.DB)
+	userService := services.NewUserService(db)
 	userHandler := NewUserHandler(userService)
 
 	// Character
-	characterService := services.NewCharacterService(database.DB)
+	characterService := services.NewCharacterService(db)
 	characterHandler := NewCharacterHandler(characterService)
 
 	// Guides
-	guideService := services.NewGuideService(database.DB)
+	guideService := services.NewGuideService(db)
 	guideHandler := NewGuideHandler(guideService)
 
 	// Eventos
-	eventService := services.NewEventService(database.DB)
+	eventService := services.NewEventService(db)
 	eventHandler := NewEventHandler(eventService)
 
 	// Auth

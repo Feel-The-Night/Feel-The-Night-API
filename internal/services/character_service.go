@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/database"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/models"
 	"gorm.io/gorm"
 )
@@ -54,6 +55,17 @@ func (s *CharacterService) GetCharacterById(ctx context.Context, id uint) (*mode
 }
 
 func (s *CharacterService) DeleteCharacterById(ctx context.Context, id uint) error {
+	var count int64
+	if err := s.db.WithContext(ctx).
+		Model(&models.Guide{}).
+		Where("character_id = ?", id).
+		Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return ErrCharacterHasGuides
+	}
+
 	result := s.db.WithContext(ctx).Delete(&models.Character{}, id)
 	if result.Error != nil {
 		return result.Error
@@ -106,8 +118,16 @@ func (s *CharacterService) UpdateCharacterById(ctx context.Context, id uint, cha
 	return existingCharacter, nil
 }
 
-func (s *CharacterService) GetCharacters(ctx context.Context) ([]models.Character, error) {
+func (s *CharacterService) GetCharacters(ctx context.Context, name, charType string) ([]models.Character, error) {
+	query := s.db.WithContext(ctx).Model(&models.Character{})
+	if name != "" {
+		query = query.Where("name ILIKE ?", "%"+database.EscapeLike(name)+"%")
+	}
+	if charType != "" {
+		query = query.Where("LOWER(type) = LOWER(?)", charType)
+	}
+
 	var characters []models.Character
-	err := s.db.WithContext(ctx).Order("name ASC").Find(&characters).Error
+	err := query.Order("name ASC").Find(&characters).Error
 	return characters, err
 }

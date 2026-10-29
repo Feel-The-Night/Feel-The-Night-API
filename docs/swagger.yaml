@@ -1,0 +1,839 @@
+basePath: /
+definitions:
+  dto.CharacterResponse:
+    properties:
+      character_id:
+        type: integer
+      description:
+        type: string
+      image_url:
+        type: string
+      name:
+        type: string
+      type:
+        type: string
+    type: object
+  dto.CreateCharacterInput:
+    properties:
+      description:
+        maxLength: 255
+        type: string
+      image_url:
+        type: string
+      name:
+        maxLength: 100
+        type: string
+      type:
+        maxLength: 30
+        type: string
+    required:
+    - description
+    - name
+    - type
+    type: object
+  dto.CreateEventInput:
+    properties:
+      banner_url:
+        maxLength: 255
+        type: string
+      day:
+        description: AAAA-MM-DD
+        example: "2026-11-15"
+        type: string
+      description:
+        maxLength: 255
+        type: string
+      title:
+        maxLength: 75
+        type: string
+    required:
+    - day
+    - description
+    - title
+    type: object
+  dto.CreateGuideInput:
+    properties:
+      banner_url:
+        type: string
+      character_id:
+        minimum: 1
+        type: integer
+      description:
+        maxLength: 2083
+        type: string
+      link:
+        type: string
+      title:
+        maxLength: 254
+        type: string
+      type:
+        maxLength: 15
+        type: string
+    required:
+    - character_id
+    - description
+    - title
+    type: object
+  dto.CreateUserInput:
+    properties:
+      discord_id:
+        type: string
+      email:
+        type: string
+      nickname:
+        maxLength: 30
+        minLength: 3
+        type: string
+      password:
+        maxLength: 72
+        minLength: 6
+        type: string
+    required:
+    - email
+    - nickname
+    - password
+    type: object
+  dto.ErrorResponse:
+    properties:
+      error:
+        example: o recurso solicitado não foi encontrado
+        type: string
+    type: object
+  dto.EventResponse:
+    properties:
+      banner_url:
+        type: string
+      day:
+        description: AAAA-MM-DD
+        example: "2026-11-15"
+        type: string
+      description:
+        type: string
+      event_id:
+        type: integer
+      title:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  dto.GuideResponse:
+    properties:
+      banner_url:
+        type: string
+      character_id:
+        type: integer
+      creation_date:
+        type: string
+      description:
+        type: string
+      dislikes:
+        type: integer
+      guide_id:
+        type: integer
+      likes:
+        type: integer
+      link:
+        type: string
+      title:
+        type: string
+      type:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  dto.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  dto.PageResponse-dto_EventResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.EventResponse'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  dto.PageResponse-dto_GuideResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.GuideResponse'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  dto.PublicUserResponse:
+    properties:
+      discord_id:
+        type: string
+      event_count:
+        type: integer
+      guide_count:
+        type: integer
+      nickname:
+        type: string
+      registration_date:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  dto.TokenResponse:
+    properties:
+      access_token:
+        type: string
+      expires_in:
+        type: integer
+      refresh_token:
+        type: string
+      token_type:
+        type: string
+    type: object
+  dto.UpdateCharacterInput:
+    properties:
+      description:
+        maxLength: 255
+        type: string
+      image_url:
+        type: string
+      name:
+        maxLength: 100
+        type: string
+      type:
+        maxLength: 30
+        type: string
+    type: object
+  dto.UpdateEventInput:
+    properties:
+      banner_url:
+        maxLength: 255
+        type: string
+      day:
+        description: AAAA-MM-DD
+        example: "2026-11-15"
+        type: string
+      description:
+        maxLength: 255
+        type: string
+      title:
+        maxLength: 75
+        type: string
+    type: object
+  dto.UpdateGuideInput:
+    properties:
+      banner_url:
+        type: string
+      description:
+        maxLength: 2083
+        type: string
+      link:
+        type: string
+      title:
+        maxLength: 254
+        type: string
+      type:
+        maxLength: 15
+        type: string
+    type: object
+  dto.UpdateUserInput:
+    properties:
+      discord_id:
+        type: string
+      email:
+        type: string
+      nickname:
+        maxLength: 30
+        minLength: 3
+        type: string
+      password:
+        maxLength: 72
+        minLength: 6
+        type: string
+    type: object
+  dto.UserResponse:
+    properties:
+      discord_id:
+        type: string
+      email:
+        type: string
+      event_count:
+        type: integer
+      guide_count:
+        type: integer
+      nickname:
+        type: string
+      registration_date:
+        type: string
+      user_id:
+        type: integer
+    type: object
+info:
+  contact: {}
+  description: API para gerenciamento de guias, eventos e personagens.
+  title: Feel The Night API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Autentica com email e senha e retorna access e refresh token.
+      parameters:
+      - description: Credenciais
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.TokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Login
+      tags:
+      - Auth
+  /characters:
+    get:
+      description: Lista todos os personagens. Nome (busca parcial) e tipo são filtros
+        opcionais.
+      parameters:
+      - description: Filtrar por nome
+        in: query
+        name: name
+        type: string
+      - description: Filtrar por tipo
+        in: query
+        name: type
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.CharacterResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Listar personagens
+      tags:
+      - Character
+    post:
+      consumes:
+      - application/json
+      description: Cria um novo personagem com os dados informados no corpo da requisição.
+      parameters:
+      - description: Dados do Personagem
+        in: body
+        name: character
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateCharacterInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.CharacterResponse'
+      security:
+      - BearerAuth: []
+      summary: Criar um novo personagem
+      tags:
+      - Character
+  /characters/{id}:
+    delete:
+      parameters:
+      - description: ID do personagem
+        in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Deletar personagem por ID
+      tags:
+      - Character
+    get:
+      parameters:
+      - description: ID do personagem
+        in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CharacterResponse'
+      summary: Buscar personagem por ID
+      tags:
+      - Character
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID do personagem
+        in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      - description: Dados para atualização
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateCharacterInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CharacterResponse'
+      security:
+      - BearerAuth: []
+      summary: Atualizar dados do personagem
+      tags:
+      - Character
+  /events:
+    get:
+      description: Lista eventos com filtros opcionais de título e paginação.
+      parameters:
+      - description: Filtrar por título
+        in: query
+        name: title
+        type: string
+      - default: 1
+        description: Página
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: Itens por página
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PageResponse-dto_EventResponse'
+      summary: listar eventos
+      tags:
+      - Event
+    post:
+      consumes:
+      - application/json
+      description: Cria um novo evento com os dados informados no corpo da requisição.
+      parameters:
+      - description: Dados do Evento
+        in: body
+        name: event
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateEventInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.EventResponse'
+      security:
+      - BearerAuth: []
+      summary: Criar um novo evento
+      tags:
+      - Event
+  /events/{id}:
+    delete:
+      parameters:
+      - description: ID do evento
+        in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Deletar evento por ID
+      tags:
+      - Event
+    get:
+      parameters:
+      - description: ID do evento
+        in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.EventResponse'
+      summary: Buscar evento por ID
+      tags:
+      - Event
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID do evento
+        in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      - description: Dados para atualização
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateEventInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.EventResponse'
+      security:
+      - BearerAuth: []
+      summary: Atualizar dados do evento
+      tags:
+      - Event
+  /guides:
+    get:
+      description: Lista guias com paginação. O título é um filtro opcional (busca
+        parcial).
+      parameters:
+      - description: Filtrar por título
+        in: query
+        name: title
+        type: string
+      - default: 1
+        description: Página
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: Itens por página
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PageResponse-dto_GuideResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Listar guias
+      tags:
+      - Guide
+    post:
+      consumes:
+      - application/json
+      description: Cria um guia com os dados informados no corpo da requisição.
+      parameters:
+      - description: Dados do guia
+        in: body
+        name: guide
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateGuideInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.GuideResponse'
+      security:
+      - BearerAuth: []
+      summary: Criar um novo guia
+      tags:
+      - Guide
+  /guides/{id}:
+    delete:
+      parameters:
+      - description: ID do guia
+        in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Deletar guia por ID
+      tags:
+      - Guide
+    get:
+      parameters:
+      - description: ID do guia
+        in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.GuideResponse'
+      summary: Buscar guia por ID
+      tags:
+      - Guide
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID do guia
+        in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      - description: Dados para atualização
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateGuideInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.GuideResponse'
+      security:
+      - BearerAuth: []
+      summary: Atualizar dados do guia
+      tags:
+      - Guide
+  /users:
+    get:
+      parameters:
+      - description: Email do usuário
+        in: query
+        name: email
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Buscar usuário por email (admin)
+      tags:
+      - User
+    post:
+      consumes:
+      - application/json
+      description: Cria um usuário com os dados informados no corpo da requisição.
+        Todo usuário novo começa como "iniciante".
+      parameters:
+      - description: Dados do usuário
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateUserInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Criar um novo usuário
+      tags:
+      - User
+  /users/{id}:
+    delete:
+      parameters:
+      - description: ID do usuário
+        in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Deletar usuário por ID (admin)
+      tags:
+      - User
+    get:
+      description: Retorna o perfil público do usuário (sem email).
+      parameters:
+      - description: ID do usuário
+        in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PublicUserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Buscar usuário por ID
+      tags:
+      - User
+    patch:
+      consumes:
+      - application/json
+      description: O próprio usuário pode editar a sua conta; admin pode editar qualquer
+        conta.
+      parameters:
+      - description: ID do usuário
+        in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      - description: Dados para atualização
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateUserInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Atualizar dados do usuário
+      tags:
+      - User
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

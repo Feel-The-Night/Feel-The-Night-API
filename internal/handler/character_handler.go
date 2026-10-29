@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -29,7 +30,7 @@ func NewCharacterHandler(characterService *services.CharacterService) *Character
 // @Security     BearerAuth
 // @Param        character  body      dto.CreateCharacterInput  true  "Dados do Personagem"
 // @Success      201        {object}  dto.CharacterResponse
-// @Router       /character [post]
+// @Router       /characters [post]
 func (h *CharacterHandler) CreateCharacter(c *gin.Context) {
 	logRequest(c, "Character", "CreateCharacter")
 
@@ -65,7 +66,7 @@ func (h *CharacterHandler) CreateCharacter(c *gin.Context) {
 // @Produce      json
 // @Param        id   path      int  true  "ID do personagem" minimum(1)
 // @Success      200  {object}  dto.CharacterResponse
-// @Router       /character/{id} [get]
+// @Router       /characters/{id} [get]
 func (h *CharacterHandler) GetCharacterById(c *gin.Context) {
 	logRequest(c, "Character", "GetCharacterById")
 
@@ -94,9 +95,9 @@ func (h *CharacterHandler) GetCharacterById(c *gin.Context) {
 // @Tags         Character
 // @Produce      json
 // @Security     BearerAuth
-// @Param        id   path      int  true  "ID do personagem" minimum(1)
-// @Success      200  {object}  map[string]string
-// @Router       /character/{id} [delete]
+// @Param        id   path        int  true  "ID do personagem" minimum(1)
+// @Success      200  {object}    map[string]string
+// @Router       /characters/{id} [delete]
 func (h *CharacterHandler) DeleteCharacterById(c *gin.Context) {
 	logRequest(c, "Character", "DeleteCharacterById")
 
@@ -110,6 +111,10 @@ func (h *CharacterHandler) DeleteCharacterById(c *gin.Context) {
 	if err := h.characterService.DeleteCharacterById(c.Request.Context(), input.ID); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "personagem não encontrado"})
+			return
+		}
+		if errors.Is(err, services.ErrCharacterHasGuides) {
+			c.JSON(http.StatusConflict, dto.ErrorResponse{Error: "personagem possui guias"})
 			return
 		}
 		internalError(c, "Character", "DeleteCharacterById", err)
@@ -128,7 +133,7 @@ func (h *CharacterHandler) DeleteCharacterById(c *gin.Context) {
 // @Param        id    path      int                      true  "ID do personagem" minimum(1)
 // @Param        body  body      dto.UpdateCharacterInput true  "Dados para atualização"
 // @Success      200   {object}  dto.CharacterResponse
-// @Router       /character/{id} [patch]
+// @Router       /characters/{id} [patch]
 func (h *CharacterHandler) UpdateCharacter(c *gin.Context) {
 	logRequest(c, "Character", "UpdateCharacter")
 
@@ -172,32 +177,36 @@ func (h *CharacterHandler) UpdateCharacter(c *gin.Context) {
 
 // GetCharacters godoc
 // @Summary      Listar personagens
-// @Description  Lista personagens com paginação. O Nome é um filtro opcional (busca parcial).
+// @Description  Lista todos os personagens. Nome (busca parcial) e tipo são filtros opcionais.
 // @Tags         Character
 // @Produce      json
-// @Param        name   query     string  false  "Filtrar por Nome"
-// @Success      200    {object}  dto.CharacterResponse
-// @Failure      400    {object}  dto.ErrorResponse
-// @Router       /character [get]
+// @Param        name  query     string  false  "Filtrar por nome"
+// @Param        type  query     string  false  "Filtrar por tipo"
+// @Success      200   {array}   dto.CharacterResponse
+// @Failure      400   {object}  dto.ErrorResponse
+// @Router       /characters [get]
 func (h *CharacterHandler) GetCharacters(c *gin.Context) {
 	logRequest(c, "Character", "GetCharacters")
 
 	var query dto.CharacterListQuery
-
 	if err := c.ShouldBindQuery(&query); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "parâmetros de consulta inválidos"})
 		return
 	}
 
-	characters, err := h.characterService.GetCharacters(c.Request.Context())
+	characters, err := h.characterService.GetCharacters(
+		c.Request.Context(),
+		strings.TrimSpace(query.Name),
+		strings.TrimSpace(query.Type),
+	)
 	if err != nil {
 		internalError(c, "Character", "GetCharacters", err)
 		return
 	}
 
-	response := make([]dto.CharacterResponse, len(characters))
-	for i, character := range characters {
-		response[i] = toCharacterResponse(&character)
+	response := make([]dto.CharacterResponse, 0, len(characters))
+	for i := range characters {
+		response = append(response, toCharacterResponse(&characters[i]))
 	}
 
 	c.JSON(http.StatusOK, response)

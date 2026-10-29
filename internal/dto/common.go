@@ -3,13 +3,12 @@ package dto
 // ErrorResponse é o formato padrão para respostas de erro da API.
 // @Title ErrorResponse
 type ErrorResponse struct {
-	ErrorName string `json:"error_name" example:"recurso não encontrado"`
-	Error     string `json:"error" example:"o recurso solicitado não foi encontrado"`
+	Error string `json:"error" example:"o recurso solicitado não foi encontrado"`
 }
 
 type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required"`
 }
 
 type TokenResponse struct {
