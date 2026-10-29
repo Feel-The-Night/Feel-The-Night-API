@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"crypto/rsa"
 	"net/http"
 	"os"
 	"strings"
@@ -12,12 +11,6 @@ import (
 )
 
 const defaultOrigins = "http://localhost:3000,http://localhost:5173,http://localhost:5174,http://localhost:5175"
-
-var (
-	verifyKey  *rsa.PublicKey
-	signKey    *rsa.PrivateKey
-	serverPort int
-)
 
 func CorsMiddleware() gin.HandlerFunc {
 	// CORS_ORIGINS=https://meusite.com,http://localhost:5173

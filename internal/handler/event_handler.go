@@ -36,7 +36,7 @@ func parseDay(s string) (time.Time, error) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        event  body      dto.CreateEventInput  true  "Dados do Evento"
-// @Success      201        {object}  dto.EventResponse
+// @Success      201    {object}  dto.EventResponse
 // @Router       /events [post]
 func (h *EventHandler) CreateEvent(c *gin.Context) {
 	logRequest(c, "Event", "CreateEvent")
@@ -199,7 +199,7 @@ func (h *EventHandler) UpdateEvent(c *gin.Context) {
 // @Param        title  query     string  false  "Filtrar por título"
 // @Param        page   query     int     false  "Página"           default(1)  minimum(1)
 // @Param        limit  query     int     false  "Itens por página"  default(20) minimum(1) maximum(100)
-// @Success      200    {list}    dto.PageResponse[dto.EventResponse]
+// @Success      200    {object}  dto.PageResponse[dto.EventResponse]
 // @Router       /events [get]
 func (h *EventHandler) GetEvents(c *gin.Context) {
 	logRequest(c, "Event", "GetEvents")

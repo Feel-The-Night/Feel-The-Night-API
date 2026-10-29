@@ -38,7 +38,7 @@ var dummyHash, _ = bcrypt.GenerateFromPassword([]byte("dummy-password"), bcrypt.
 // @Failure      401   {object}  dto.ErrorResponse
 // @Router       /auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
-	logRequest(c, "Login", "Login")
+	logRequest(c, "Auth", "Login")
 
 	var input dto.LoginRequest
 	if err := c.ShouldBindJSON(&input); err != nil {

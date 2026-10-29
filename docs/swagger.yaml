@@ -151,6 +151,19 @@ definitions:
     - email
     - password
     type: object
+  dto.PageResponse-dto_EventResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.EventResponse'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
   dto.PageResponse-dto_GuideResponse:
     properties:
       data:
@@ -453,7 +466,7 @@ paths:
         "200":
           description: OK
           schema:
-            type: list
+            $ref: '#/definitions/dto.PageResponse-dto_EventResponse'
       summary: listar eventos
       tags:
       - Event
