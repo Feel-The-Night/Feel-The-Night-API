@@ -1,15 +1,20 @@
 package database
 
 import (
+	"embed"
 	"fmt"
 	"os"
 	"strings"
 
+	"github.com/pressly/goose/v3"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/models"
 )
+
+//go:embed migrations/*.sql
+var migrationsFS embed.FS
 
 func Connect() (*gorm.DB, error) {
 	dsn := fmt.Sprintf(
@@ -33,13 +38,7 @@ func Connect() (*gorm.DB, error) {
 		return nil, fmt.Errorf("falha ao conectar no banco de dados: %w", err)
 	}
 
-	if err := db.AutoMigrate(
-		&models.User{},
-		&models.Character{},
-		&models.Event{},
-		&models.Guide{},
-		&models.LastEvent{},
-	); err != nil {
+	if err := migrate(db); err != nil {
 		return nil, fmt.Errorf("falha ao executar o AutoMigrate: %w", err)
 	}
 
@@ -48,6 +47,20 @@ func Connect() (*gorm.DB, error) {
 	}
 
 	return db, nil
+}
+
+func migrate(db *gorm.DB) error {
+	sqlDB, err := db.DB()
+	if err != nil {
+		return err
+	}
+
+	goose.SetBaseFS(migrationsFS)
+	if err := goose.SetDialect("postgres"); err != nil {
+		return err
+	}
+	return goose.Up(sqlDB, "migrations")
+
 }
 
 func createConstraints(db *gorm.DB) error {

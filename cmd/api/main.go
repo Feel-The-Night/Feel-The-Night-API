@@ -13,7 +13,6 @@ import (
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 
-	// Importe o pacote docs sem o "_" para poder acessar a variável SwaggerInfo
 	"github.com/kisalto/Feel-The-Night-Swagger/docs"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/app"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/platform/database"
