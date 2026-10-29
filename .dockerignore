@@ -1,0 +1,9 @@
+.git
+.env
+tmp/
+bin/
+*.exe
+.air.toml
+.venv/
+tests/seed_models.py
+requirements.txt
