@@ -10,8 +10,8 @@ tmp_dir = "tmp"
   bin = "./tmp/main.exe"
 
   # Windows cmd
-  cmd = "swag init -d ./cmd/api,./internal/handler,./internal/models,./internal/dto -g main.go; go build -o ./tmp/main.exe ./cmd/api"
-
+  pre_cmd = ["swag init -d ./cmd/api,./internal/auth,./internal/user,./internal/character,./internal/guide,./internal/event,./internal/models,./internal/platform/httpx -g main.go"]
+  cmd = "go build -o ./tmp/main.exe ./cmd/api"
   delay = 1000
 
   # Windows entrypoint
@@ -32,7 +32,6 @@ tmp_dir = "tmp"
   poll = false
   poll_interval = 0
   post_cmd = []
-  pre_cmd = []
   rerun = false
   rerun_delay = 500
   send_interrupt = false

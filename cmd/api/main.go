@@ -1,18 +1,21 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 
-	// Importe o pacote docs sem o "_" para poder acessar a variável SwaggerInfo
 	"github.com/kisalto/Feel-The-Night-Swagger/docs"
-	"github.com/kisalto/Feel-The-Night-Swagger/internal/database"
-	"github.com/kisalto/Feel-The-Night-Swagger/internal/handler"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/app"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/platform/database"
 )
 
 // @title           Feel The Night API
@@ -73,11 +76,10 @@ func main() {
 	}
 
 	// 4. Carrega Rotas
-	routes := handler.Setup(db)
+	routes := app.NewRouter(db)
 
 	// 5. Inicia o Servidor
 	serverPort := fmt.Sprintf(":%s", port)
-	zap.L().Info("Servidor rodando na porta", zap.String("port", serverPort))
 
 	srv := &http.Server{
 		Addr:              serverPort,
@@ -88,11 +90,30 @@ func main() {
 		IdleTimeout:       60 * time.Second,
 	}
 
-	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		zap.L().Fatal("Erro ao iniciar o servidor", zap.Error(err))
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	go func() {
+		zap.L().Info("Servidor rodando na porta", zap.String("port", serverPort))
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			zap.L().Fatal("Erro ao iniciar o servidor", zap.Error(err))
+		}
+	}()
+
+	<-ctx.Done()
+	zap.L().Info("Sinal recebido, desligando o servidor...")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		zap.L().Error("Shutdown forçado: requisições não terminaram a tempo", zap.Error(err))
 	}
 
-	// if err := http.ListenAndServe(serverPort, routes); err != nil {
-	// 	zap.L().Fatal("Erro ao iniciar o servidor", zap.Error(err))
-	// }
+	if sqlDB, err := db.DB(); err == nil {
+		_ = sqlDB.Close()
+	}
+
+	zap.L().Info("Servidor desligado")
+
 }
