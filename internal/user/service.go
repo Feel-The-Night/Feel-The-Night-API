@@ -1,4 +1,4 @@
-package services
+package user
 
 import (
 	"context"
@@ -7,16 +7,21 @@ import (
 	"strings"
 
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/models"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/platform/apperr"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
-type UserService struct {
+var (
+	ErrEmailTaken = errors.New("email já cadastrado")
+)
+
+type Service struct {
 	db *gorm.DB
 }
 
-func NewUserService(db *gorm.DB) *UserService {
-	return &UserService{db: db}
+func NewService(db *gorm.DB) *Service {
+	return &Service{db: db}
 }
 
 func normalizeEmail(email string) string {
@@ -32,7 +37,7 @@ func hashPassword(password string) (string, error) {
 }
 
 // emailTaken verifica se o email já é usado por outro usuário (exceto exceptID).
-func (s *UserService) emailTaken(ctx context.Context, email string, exceptID uint) (bool, error) {
+func (s *Service) emailTaken(ctx context.Context, email string, exceptID uint) (bool, error) {
 	var count int64
 	err := s.db.WithContext(ctx).
 		Model(&models.User{}).
@@ -44,7 +49,7 @@ func (s *UserService) emailTaken(ctx context.Context, email string, exceptID uin
 // CreateUser cria um usuário novo.
 // O cliente só controla nickname, email, discord_id e senha:
 // ID, role, contadores e datas são sempre definidos aqui ou pelo banco.
-func (s *UserService) CreateUser(ctx context.Context, user *models.User) error {
+func (s *Service) CreateUser(ctx context.Context, user *models.User) error {
 	user.Email = normalizeEmail(user.Email)
 
 	taken, err := s.emailTaken(ctx, user.Email, 0)
@@ -75,7 +80,7 @@ func (s *UserService) CreateUser(ctx context.Context, user *models.User) error {
 	return nil
 }
 
-func (s *UserService) GetUserById(ctx context.Context, id uint) (*models.User, error) {
+func (s *Service) GetUserById(ctx context.Context, id uint) (*models.User, error) {
 	var user models.User
 	if err := s.db.WithContext(ctx).First(&user, id).Error; err != nil {
 		return nil, err
@@ -83,7 +88,7 @@ func (s *UserService) GetUserById(ctx context.Context, id uint) (*models.User, e
 	return &user, nil
 }
 
-func (s *UserService) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+func (s *Service) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
 	var user models.User
 	if err := s.db.WithContext(ctx).
 		Where("email = ?", normalizeEmail(email)).
@@ -93,7 +98,7 @@ func (s *UserService) GetUserByEmail(ctx context.Context, email string) (*models
 	return &user, nil
 }
 
-func (s *UserService) DeleteUserById(ctx context.Context, id uint) error {
+func (s *Service) DeleteUserById(ctx context.Context, id uint) error {
 	result := s.db.WithContext(ctx).Delete(&models.User{}, id)
 	if result.Error != nil {
 		return result.Error
@@ -104,7 +109,7 @@ func (s *UserService) DeleteUserById(ctx context.Context, id uint) error {
 	return nil
 }
 
-func (s *UserService) UpdateUser(ctx context.Context, id uint, user *models.User) (*models.User, error) {
+func (s *Service) UpdateUser(ctx context.Context, id uint, user *models.User) (*models.User, error) {
 	existingUser, err := s.GetUserById(ctx, id)
 	if err != nil {
 		return nil, err
@@ -142,7 +147,7 @@ func (s *UserService) UpdateUser(ctx context.Context, id uint, user *models.User
 	}
 
 	if len(updates) == 0 {
-		return nil, ErrNoUpdateData
+		return nil, apperr.ErrNoUpdateData
 	}
 
 	if err := s.db.WithContext(ctx).Model(existingUser).Updates(updates).Error; err != nil {

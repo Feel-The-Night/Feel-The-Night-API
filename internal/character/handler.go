@@ -1,4 +1,4 @@
-package handler
+package character
 
 import (
 	"errors"
@@ -8,17 +8,17 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
-	"github.com/kisalto/Feel-The-Night-Swagger/internal/dto"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/models"
-	"github.com/kisalto/Feel-The-Night-Swagger/internal/services"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/platform/apperr"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/platform/httpx"
 )
 
-type CharacterHandler struct {
-	characterService *services.CharacterService
+type Handler struct {
+	characterService *Service
 }
 
-func NewCharacterHandler(characterService *services.CharacterService) *CharacterHandler {
-	return &CharacterHandler{characterService: characterService}
+func NewHandler(characterService *Service) *Handler {
+	return &Handler{characterService: characterService}
 }
 
 // CreateCharacter godoc
@@ -28,16 +28,16 @@ func NewCharacterHandler(characterService *services.CharacterService) *Character
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        character  body      dto.CreateCharacterInput  true  "Dados do Personagem"
-// @Success      201        {object}  dto.CharacterResponse
+// @Param        character  body      CreateInput  true  "Dados do Personagem"
+// @Success      201        {object}  Response
 // @Router       /characters [post]
-func (h *CharacterHandler) CreateCharacter(c *gin.Context) {
-	logRequest(c, "Character", "CreateCharacter")
+func (h *Handler) CreateCharacter(c *gin.Context) {
+	httpx.LogRequest(c, "Character", "CreateCharacter")
 
-	var input dto.CreateCharacterInput
+	var input CreateInput
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: err.Error()})
 		return
 	}
 
@@ -49,11 +49,11 @@ func (h *CharacterHandler) CreateCharacter(c *gin.Context) {
 	}
 
 	if err := h.characterService.CreateCharacter(c.Request.Context(), &character); err != nil {
-		if errors.Is(err, services.ErrCharacterExists) {
-			c.JSON(http.StatusConflict, dto.ErrorResponse{Error: err.Error()})
+		if errors.Is(err, ErrExists) {
+			c.JSON(http.StatusConflict, httpx.ErrorResponse{Error: err.Error()})
 			return
 		}
-		internalError(c, "Character", "CreateCharacter", err)
+		httpx.InternalError(c, "Character", "CreateCharacter", err)
 		return
 	}
 
@@ -65,25 +65,25 @@ func (h *CharacterHandler) CreateCharacter(c *gin.Context) {
 // @Tags         Character
 // @Produce      json
 // @Param        id   path      int  true  "ID do personagem" minimum(1)
-// @Success      200  {object}  dto.CharacterResponse
+// @Success      200  {object}  Response
 // @Router       /characters/{id} [get]
-func (h *CharacterHandler) GetCharacterById(c *gin.Context) {
-	logRequest(c, "Character", "GetCharacterById")
+func (h *Handler) GetCharacterById(c *gin.Context) {
+	httpx.LogRequest(c, "Character", "GetCharacterById")
 
-	var input dto.CharacterIDInput
+	var input IDInput
 
 	if err := c.ShouldBindUri(&input); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "id inválido"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "id inválido"})
 		return
 	}
 
 	character, err := h.characterService.GetCharacterById(c.Request.Context(), input.ID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "personagem não encontrado"})
+			c.JSON(http.StatusNotFound, httpx.ErrorResponse{Error: "personagem não encontrado"})
 			return
 		}
-		internalError(c, "Character", "GetCharacterById", err)
+		httpx.InternalError(c, "Character", "GetCharacterById", err)
 		return
 	}
 
@@ -98,26 +98,26 @@ func (h *CharacterHandler) GetCharacterById(c *gin.Context) {
 // @Param        id   path        int  true  "ID do personagem" minimum(1)
 // @Success      200  {object}    map[string]string
 // @Router       /characters/{id} [delete]
-func (h *CharacterHandler) DeleteCharacterById(c *gin.Context) {
-	logRequest(c, "Character", "DeleteCharacterById")
+func (h *Handler) DeleteCharacterById(c *gin.Context) {
+	httpx.LogRequest(c, "Character", "DeleteCharacterById")
 
-	var input dto.CharacterIDInput
+	var input IDInput
 
 	if err := c.ShouldBindUri(&input); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "id inválido"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "id inválido"})
 		return
 	}
 
 	if err := h.characterService.DeleteCharacterById(c.Request.Context(), input.ID); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "personagem não encontrado"})
+			c.JSON(http.StatusNotFound, httpx.ErrorResponse{Error: "personagem não encontrado"})
 			return
 		}
-		if errors.Is(err, services.ErrCharacterHasGuides) {
-			c.JSON(http.StatusConflict, dto.ErrorResponse{Error: "personagem possui guias"})
+		if errors.Is(err, ErrHasGuides) {
+			c.JSON(http.StatusConflict, httpx.ErrorResponse{Error: "personagem possui guias"})
 			return
 		}
-		internalError(c, "Character", "DeleteCharacterById", err)
+		httpx.InternalError(c, "Character", "DeleteCharacterById", err)
 		return
 	}
 
@@ -131,22 +131,22 @@ func (h *CharacterHandler) DeleteCharacterById(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id    path      int                      true  "ID do personagem" minimum(1)
-// @Param        body  body      dto.UpdateCharacterInput true  "Dados para atualização"
-// @Success      200   {object}  dto.CharacterResponse
+// @Param        body  body      UpdateInput true  "Dados para atualização"
+// @Success      200   {object}  Response
 // @Router       /characters/{id} [patch]
-func (h *CharacterHandler) UpdateCharacter(c *gin.Context) {
-	logRequest(c, "Character", "UpdateCharacter")
+func (h *Handler) UpdateCharacter(c *gin.Context) {
+	httpx.LogRequest(c, "Character", "UpdateCharacter")
 
-	var uriInput dto.CharacterIDInput
-	var bodyInput dto.UpdateCharacterInput
+	var uriInput IDInput
+	var bodyInput UpdateInput
 
 	if err := c.ShouldBindUri(&uriInput); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "id inválido"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "id inválido"})
 		return
 	}
 
 	if err := c.ShouldBindJSON(&bodyInput); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "corpo da requisição inválido"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "corpo da requisição inválido"})
 		return
 	}
 
@@ -161,13 +161,13 @@ func (h *CharacterHandler) UpdateCharacter(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, gorm.ErrRecordNotFound):
-			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "personagem não encontrado"})
-		case errors.Is(err, services.ErrNoUpdateData):
-			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
-		case errors.Is(err, services.ErrCharacterExists):
-			c.JSON(http.StatusConflict, dto.ErrorResponse{Error: err.Error()})
+			c.JSON(http.StatusNotFound, httpx.ErrorResponse{Error: "personagem não encontrado"})
+		case errors.Is(err, apperr.ErrNoUpdateData):
+			c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: err.Error()})
+		case errors.Is(err, ErrExists):
+			c.JSON(http.StatusConflict, httpx.ErrorResponse{Error: err.Error()})
 		default:
-			internalError(c, "Character", "UpdateCharacter", err)
+			httpx.InternalError(c, "Character", "UpdateCharacter", err)
 		}
 		return
 	}
@@ -182,15 +182,15 @@ func (h *CharacterHandler) UpdateCharacter(c *gin.Context) {
 // @Produce      json
 // @Param        name  query     string  false  "Filtrar por nome"
 // @Param        type  query     string  false  "Filtrar por tipo"
-// @Success      200   {array}   dto.CharacterResponse
-// @Failure      400   {object}  dto.ErrorResponse
+// @Success      200   {array}   Response
+// @Failure      400   {object}  httpx.ErrorResponse
 // @Router       /characters [get]
-func (h *CharacterHandler) GetCharacters(c *gin.Context) {
-	logRequest(c, "Character", "GetCharacters")
+func (h *Handler) GetCharacters(c *gin.Context) {
+	httpx.LogRequest(c, "Character", "GetCharacters")
 
-	var query dto.CharacterListQuery
+	var query ListQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "parâmetros de consulta inválidos"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "parâmetros de consulta inválidos"})
 		return
 	}
 
@@ -200,11 +200,11 @@ func (h *CharacterHandler) GetCharacters(c *gin.Context) {
 		strings.TrimSpace(query.Type),
 	)
 	if err != nil {
-		internalError(c, "Character", "GetCharacters", err)
+		httpx.InternalError(c, "Character", "GetCharacters", err)
 		return
 	}
 
-	response := make([]dto.CharacterResponse, 0, len(characters))
+	response := make([]Response, 0, len(characters))
 	for i := range characters {
 		response = append(response, toCharacterResponse(&characters[i]))
 	}
@@ -212,8 +212,8 @@ func (h *CharacterHandler) GetCharacters(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-func toCharacterResponse(character *models.Character) dto.CharacterResponse {
-	return dto.CharacterResponse{
+func toCharacterResponse(character *models.Character) Response {
+	return Response{
 		CharacterID: character.CharacterID,
 		Name:        character.Name,
 		Description: character.Description,

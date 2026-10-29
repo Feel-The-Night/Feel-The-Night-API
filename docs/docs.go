@@ -35,7 +35,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.LoginRequest"
+                            "$ref": "#/definitions/auth.LoginRequest"
                         }
                     }
                 ],
@@ -43,19 +43,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.TokenResponse"
+                            "$ref": "#/definitions/auth.TokenResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -91,14 +91,14 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/dto.CharacterResponse"
+                                "$ref": "#/definitions/character.Response"
                             }
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -127,7 +127,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.CreateCharacterInput"
+                            "$ref": "#/definitions/character.CreateInput"
                         }
                     }
                 ],
@@ -135,7 +135,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dto.CharacterResponse"
+                            "$ref": "#/definitions/character.Response"
                         }
                     }
                 }
@@ -164,7 +164,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.CharacterResponse"
+                            "$ref": "#/definitions/character.Response"
                         }
                     }
                 }
@@ -235,7 +235,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.UpdateCharacterInput"
+                            "$ref": "#/definitions/character.UpdateInput"
                         }
                     }
                 ],
@@ -243,7 +243,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.CharacterResponse"
+                            "$ref": "#/definitions/character.Response"
                         }
                     }
                 }
@@ -264,6 +264,12 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Filtrar por título",
                         "name": "title",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Só eventos futuros",
+                        "name": "upcoming",
                         "in": "query"
                     },
                     {
@@ -288,7 +294,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PageResponse-dto_EventResponse"
+                            "$ref": "#/definitions/httpx.PageResponse-event_Response"
                         }
                     }
                 }
@@ -317,7 +323,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.CreateEventInput"
+                            "$ref": "#/definitions/event.CreateInput"
                         }
                     }
                 ],
@@ -325,7 +331,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dto.EventResponse"
+                            "$ref": "#/definitions/event.Response"
                         }
                     }
                 }
@@ -354,7 +360,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.EventResponse"
+                            "$ref": "#/definitions/event.Response"
                         }
                     }
                 }
@@ -425,7 +431,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.UpdateEventInput"
+                            "$ref": "#/definitions/event.UpdateInput"
                         }
                     }
                 ],
@@ -433,7 +439,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.EventResponse"
+                            "$ref": "#/definitions/event.Response"
                         }
                     }
                 }
@@ -478,13 +484,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PageResponse-dto_GuideResponse"
+                            "$ref": "#/definitions/httpx.PageResponse-guide_Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -513,7 +519,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.CreateGuideInput"
+                            "$ref": "#/definitions/guide.CreateInput"
                         }
                     }
                 ],
@@ -521,7 +527,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dto.GuideResponse"
+                            "$ref": "#/definitions/guide.Response"
                         }
                     }
                 }
@@ -550,7 +556,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.GuideResponse"
+                            "$ref": "#/definitions/guide.Response"
                         }
                     }
                 }
@@ -621,7 +627,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.UpdateGuideInput"
+                            "$ref": "#/definitions/guide.UpdateInput"
                         }
                     }
                 ],
@@ -629,7 +635,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.GuideResponse"
+                            "$ref": "#/definitions/guide.Response"
                         }
                     }
                 }
@@ -662,13 +668,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.UserResponse"
+                            "$ref": "#/definitions/user.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -692,7 +698,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.CreateUserInput"
+                            "$ref": "#/definitions/user.CreateInput"
                         }
                     }
                 ],
@@ -700,19 +706,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dto.UserResponse"
+                            "$ref": "#/definitions/user.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Conflict",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -742,19 +748,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.PublicUserResponse"
+                            "$ref": "#/definitions/user.PublicResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -795,7 +801,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -832,7 +838,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.UpdateUserInput"
+                            "$ref": "#/definitions/user.UpdateInput"
                         }
                     }
                 ],
@@ -840,13 +846,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.UserResponse"
+                            "$ref": "#/definitions/user.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -854,27 +860,39 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "dto.CharacterResponse": {
+        "auth.LoginRequest": {
             "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
             "properties": {
-                "character_id": {
-                    "type": "integer"
-                },
-                "description": {
+                "email": {
                     "type": "string"
                 },
-                "image_url": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "type": {
+                "password": {
                     "type": "string"
                 }
             }
         },
-        "dto.CreateCharacterInput": {
+        "auth.TokenResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "expires_in": {
+                    "type": "integer"
+                },
+                "refresh_token": {
+                    "type": "string"
+                },
+                "token_type": {
+                    "type": "string"
+                }
+            }
+        },
+        "character.CreateInput": {
             "type": "object",
             "required": [
                 "description",
@@ -899,7 +917,47 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.CreateEventInput": {
+        "character.Response": {
+            "type": "object",
+            "properties": {
+                "character_id": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "character.UpdateInput": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "type": {
+                    "type": "string",
+                    "maxLength": 30
+                }
+            }
+        },
+        "event.CreateInput": {
             "type": "object",
             "required": [
                 "day",
@@ -926,7 +984,54 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.CreateGuideInput": {
+        "event.Response": {
+            "type": "object",
+            "properties": {
+                "banner_url": {
+                    "type": "string"
+                },
+                "day": {
+                    "description": "AAAA-MM-DD",
+                    "type": "string",
+                    "example": "2026-11-15"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "event_id": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "event.UpdateInput": {
+            "type": "object",
+            "properties": {
+                "banner_url": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "day": {
+                    "description": "AAAA-MM-DD",
+                    "type": "string",
+                    "example": "2026-11-15"
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 75
+                }
+            }
+        },
+        "guide.CreateInput": {
             "type": "object",
             "required": [
                 "character_id",
@@ -958,67 +1063,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.CreateUserInput": {
-            "type": "object",
-            "required": [
-                "email",
-                "nickname",
-                "password"
-            ],
-            "properties": {
-                "discord_id": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "nickname": {
-                    "type": "string",
-                    "maxLength": 30,
-                    "minLength": 3
-                },
-                "password": {
-                    "type": "string",
-                    "maxLength": 72,
-                    "minLength": 6
-                }
-            }
-        },
-        "dto.ErrorResponse": {
-            "type": "object",
-            "properties": {
-                "error": {
-                    "type": "string",
-                    "example": "o recurso solicitado não foi encontrado"
-                }
-            }
-        },
-        "dto.EventResponse": {
-            "type": "object",
-            "properties": {
-                "banner_url": {
-                    "type": "string"
-                },
-                "day": {
-                    "description": "AAAA-MM-DD",
-                    "type": "string",
-                    "example": "2026-11-15"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "event_id": {
-                    "type": "integer"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "user_id": {
-                    "type": "integer"
-                }
-            }
-        },
-        "dto.GuideResponse": {
+        "guide.Response": {
             "type": "object",
             "properties": {
                 "banner_url": {
@@ -1056,144 +1101,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.LoginRequest": {
-            "type": "object",
-            "required": [
-                "email",
-                "password"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                }
-            }
-        },
-        "dto.PageResponse-dto_EventResponse": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/dto.EventResponse"
-                    }
-                },
-                "limit": {
-                    "type": "integer"
-                },
-                "page": {
-                    "type": "integer"
-                },
-                "total": {
-                    "type": "integer"
-                }
-            }
-        },
-        "dto.PageResponse-dto_GuideResponse": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/dto.GuideResponse"
-                    }
-                },
-                "limit": {
-                    "type": "integer"
-                },
-                "page": {
-                    "type": "integer"
-                },
-                "total": {
-                    "type": "integer"
-                }
-            }
-        },
-        "dto.PublicUserResponse": {
-            "type": "object",
-            "properties": {
-                "discord_id": {
-                    "type": "string"
-                },
-                "event_count": {
-                    "type": "integer"
-                },
-                "guide_count": {
-                    "type": "integer"
-                },
-                "nickname": {
-                    "type": "string"
-                },
-                "registration_date": {
-                    "type": "string"
-                },
-                "user_id": {
-                    "type": "integer"
-                }
-            }
-        },
-        "dto.TokenResponse": {
-            "type": "object",
-            "properties": {
-                "access_token": {
-                    "type": "string"
-                },
-                "expires_in": {
-                    "type": "integer"
-                },
-                "refresh_token": {
-                    "type": "string"
-                },
-                "token_type": {
-                    "type": "string"
-                }
-            }
-        },
-        "dto.UpdateCharacterInput": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string",
-                    "maxLength": 255
-                },
-                "image_url": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string",
-                    "maxLength": 100
-                },
-                "type": {
-                    "type": "string",
-                    "maxLength": 30
-                }
-            }
-        },
-        "dto.UpdateEventInput": {
-            "type": "object",
-            "properties": {
-                "banner_url": {
-                    "type": "string",
-                    "maxLength": 255
-                },
-                "day": {
-                    "description": "AAAA-MM-DD",
-                    "type": "string",
-                    "example": "2026-11-15"
-                },
-                "description": {
-                    "type": "string",
-                    "maxLength": 255
-                },
-                "title": {
-                    "type": "string",
-                    "maxLength": 75
-                }
-            }
-        },
-        "dto.UpdateGuideInput": {
+        "guide.UpdateInput": {
             "type": "object",
             "properties": {
                 "banner_url": {
@@ -1216,8 +1124,62 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.UpdateUserInput": {
+        "httpx.ErrorResponse": {
             "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "o recurso solicitado não foi encontrado"
+                }
+            }
+        },
+        "httpx.PageResponse-event_Response": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/event.Response"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "httpx.PageResponse-guide_Response": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/guide.Response"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "user.CreateInput": {
+            "type": "object",
+            "required": [
+                "email",
+                "nickname",
+                "password"
+            ],
             "properties": {
                 "discord_id": {
                     "type": "string"
@@ -1237,7 +1199,30 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.UserResponse": {
+        "user.PublicResponse": {
+            "type": "object",
+            "properties": {
+                "discord_id": {
+                    "type": "string"
+                },
+                "event_count": {
+                    "type": "integer"
+                },
+                "guide_count": {
+                    "type": "integer"
+                },
+                "nickname": {
+                    "type": "string"
+                },
+                "registration_date": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "user.Response": {
             "type": "object",
             "properties": {
                 "discord_id": {
@@ -1260,6 +1245,27 @@ const docTemplate = `{
                 },
                 "user_id": {
                     "type": "integer"
+                }
+            }
+        },
+        "user.UpdateInput": {
+            "type": "object",
+            "properties": {
+                "discord_id": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "nickname": {
+                    "type": "string",
+                    "maxLength": 30,
+                    "minLength": 3
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 72,
+                    "minLength": 6
                 }
             }
         }

@@ -1,4 +1,4 @@
-package auth
+package jwt
 
 import (
 	"crypto/rand"
@@ -36,9 +36,9 @@ const (
 
 // common auth errors
 var (
-	ErrExpiredToken  = errors.New("Token expired")
-	ErrInvalidToken  = errors.New("Token invalid")
-	ErrMissingSecret = errors.New("Missing JWT_SECRET configuration")
+	ErrExpiredToken  = errors.New("token expired")
+	ErrInvalidToken  = errors.New("token invalid")
+	ErrMissingSecret = errors.New("missing JWT_SECRET configuration")
 )
 
 func getSecret() ([]byte, error) {

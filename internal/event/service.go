@@ -1,26 +1,27 @@
-package services
+package event
 
 import (
 	"context"
 
-	"github.com/kisalto/Feel-The-Night-Swagger/internal/database"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/models"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/platform/apperr"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/platform/database"
 	"gorm.io/gorm"
 )
 
-type EventService struct {
+type Service struct {
 	db *gorm.DB
 }
 
-func NewEventService(db *gorm.DB) *EventService {
-	return &EventService{db: db}
+func NewService(db *gorm.DB) *Service {
+	return &Service{db: db}
 }
 
-func (s *EventService) CreateEvent(ctx context.Context, event *models.Event) error {
+func (s *Service) CreateEvent(ctx context.Context, event *models.Event) error {
 	return s.db.WithContext(ctx).Create(event).Error
 }
 
-func (s *EventService) GetEventById(ctx context.Context, id uint) (*models.Event, error) {
+func (s *Service) GetEventById(ctx context.Context, id uint) (*models.Event, error) {
 	var event models.Event
 	if err := s.db.WithContext(ctx).First(&event, id).Error; err != nil {
 		return nil, err
@@ -28,7 +29,7 @@ func (s *EventService) GetEventById(ctx context.Context, id uint) (*models.Event
 	return &event, nil
 }
 
-func (s *EventService) DeleteEventById(ctx context.Context, id uint) error {
+func (s *Service) DeleteEventById(ctx context.Context, id uint) error {
 	result := s.db.WithContext(ctx).Delete(&models.Event{EventID: id})
 	if result.Error != nil {
 		return result.Error
@@ -41,7 +42,7 @@ func (s *EventService) DeleteEventById(ctx context.Context, id uint) error {
 	return nil
 }
 
-func (s *EventService) UpdateEventById(ctx context.Context, id uint, event *models.Event) (*models.Event, error) {
+func (s *Service) UpdateEventById(ctx context.Context, id uint, event *models.Event) (*models.Event, error) {
 	existingEvent, err := s.GetEventById(ctx, id)
 	if err != nil {
 		return nil, err
@@ -63,7 +64,7 @@ func (s *EventService) UpdateEventById(ctx context.Context, id uint, event *mode
 	}
 
 	if len(updates) == 0 {
-		return nil, ErrNoUpdateData
+		return nil, apperr.ErrNoUpdateData
 	}
 
 	if err := s.db.WithContext(ctx).Model(existingEvent).Updates(updates).Error; err != nil {
@@ -73,7 +74,7 @@ func (s *EventService) UpdateEventById(ctx context.Context, id uint, event *mode
 	return existingEvent, nil
 }
 
-func (s *EventService) GetEvents(ctx context.Context, title string, upcoming bool, page, limit int) ([]models.Event, int64, error) {
+func (s *Service) GetEvents(ctx context.Context, title string, upcoming bool, page, limit int) ([]models.Event, int64, error) {
 	query := s.db.WithContext(ctx).Model(&models.Event{})
 	if title != "" {
 		query = query.Where("title ILIKE ?", "%"+database.EscapeLike(title)+"%")

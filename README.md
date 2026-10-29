@@ -1,4 +1,6 @@
-# Feel-The-Night-Swagger
+# Feel-The-Night API
+
+Backend REST do projeto **Feel The Night**, uma plataforma de conteúdo para a comunidade de jogos de luta: guias, páginas de personagens e eventos.
 
 ## Sumário
 
@@ -6,30 +8,36 @@
 - [Tecnologias Utilizadas](#tecnologias-utilizadas)
 - [Estrutura do Repositório](#estrutura-do-repositório)
 - [Pré-requisitos](#pré-requisitos)
-- [Instalação de Dependências](#instalação-de-dependências)
+- [Instalação](#instalação)
 - [Configuração da Env](#configuração-da-env)
+- [Rodando a Aplicação](#rodando-a-aplicação)
+- [Documentação Swagger](#documentação-swagger)
+- [Autenticação e Permissões](#autenticação-e-permissões)
+- [Endpoints](#endpoints)
 - [Banco de Dados](#banco-de-dados)
-- [Migrations](#migrations)
+- [Testes](#testes)
 - [Observações](#observações)
-- [Sobre](#sobre)
 - [Licença](#licença)
 
 ## Descrição Geral
 
-Este projeto é o backend da API REST do projeto [Feel-The-Night](https://github.com/kisalto/Feel-The-Night), responsável por expor endpoints para gerenciamento de usuários, personagens, guias, eventos e demais conteúdos do universo do jogo.
+A API expõe endpoints para gerenciar usuários, personagens, guias e eventos, com autenticação via JWT e controle de acesso por papéis (iniciante, veterano e admin).
 
-A aplicação foi desenvolvida em Go, utilizando Gin para a API HTTP, GORM para acesso ao PostgreSQL e Swaggo para geração automática da documentação Swagger. O projeto também já está preparado para carregar variáveis de ambiente com `godotenv` e para rodar em modo de desenvolvimento com `air`.
+Ela é escrita em Go com Gin (HTTP), GORM (PostgreSQL) e Swaggo (documentação Swagger gerada a partir dos comentários dos handlers). O código segue uma organização **por feature**: cada recurso (usuário, personagem, guia, evento) tem a própria pasta com handler, service, DTOs e rotas, e a infraestrutura compartilhada fica em `internal/platform`.
 
 ## Tecnologias Utilizadas
 
 - Go
 - Gin
-- GORM
-- PostgreSQL
+- GORM + PostgreSQL
+- JWT (`golang-jwt/jwt`)
+- bcrypt (`golang.org/x/crypto`)
+- Rate limiting (`golang.org/x/time/rate`)
 - Swaggo / Swag
+- zap (logs estruturados)
 - godotenv
-- Air
-- Docker / Docker Compose (opcional)
+- Air (hot reload em desenvolvimento)
+- testify (testes)
 
 ## Estrutura do Repositório
 
@@ -37,108 +45,71 @@ A aplicação foi desenvolvida em Go, utilizando Gin para a API HTTP, GORM para 
 Feel-The-Night-Swagger/
 ├── cmd/
 │   └── api/
-│       └── main.go
-├── docs/
-│   ├── docs.go
-│   ├── swagger.json
-│   └── swagger.yaml
+│       └── main.go              # ponto de entrada: env, logger, banco e servidor HTTP
+├── docs/                        # Swagger gerado pelo swag (não editar à mão)
 ├── internal/
-│   ├── config/
-│   ├── database/
-│   │   └── database.go
-│   ├── dto/
-│   │   └── user_dto.go
-│   ├── handler/
-│   │   ├── routes.go
-│   │   └── user_handler.go
+│   ├── app/
+│   │   └── routes.go            # NewRouter: monta middlewares, services, handlers e rotas
+│   ├── auth/                    # login (handler, DTOs e rotas)
+│   ├── user/                    # usuários
+│   ├── character/               # personagens
+│   ├── guide/                   # guias
+│   ├── event/                   # eventos
+│   │   ├── dto.go               #   entradas e respostas da feature
+│   │   ├── handler.go           #   handlers HTTP
+│   │   ├── routes.go            #   RegisterRoutes da feature
+│   │   └── service.go           #   regras de negócio e acesso ao banco
 │   ├── models/
-│   │   └── models.go
-│   ├── repository/
-│   └── services/
-│       └── user_service.go
+│   │   └── models.go            # structs do GORM (compartilhadas entre as features)
+│   └── platform/                # infraestrutura, sem regra de negócio
+│       ├── apperr/              # erros compartilhados (ex.: ErrNoUpdateData)
+│       ├── database/            # conexão, AutoMigrate, FKs e EscapeLike
+│       ├── httpx/               # ErrorResponse, PageResponse e helpers de resposta/log
+│       ├── jwt/                 # geração e validação de tokens
+│       └── middleware/          # autenticação, roles, CORS, timeout e rate limit
+├── tests/
+│   └── seed_models.py           # script que popula a API com dados de exemplo
 ├── .air.toml
-├── .env
 ├── .env.example
-├── .gitignore
 ├── go.mod
 ├── go.sum
-├── LICENSE
-├── README.md
-└── tmp/
+└── README.md
 ```
+
+As dependências seguem uma direção só: `cmd/api → app → features → platform/models`. As features não importam umas às outras.
 
 ## Pré-requisitos
 
-Antes de começar, certifique-se de ter instalado:
-
-- Go (versão compatível com o projeto; o arquivo `go.mod` está configurado com `go 1.27.1`)
+- Go (o `go.mod` está configurado com `go 1.27.1`)
 - PostgreSQL em execução
 - Git
-- Opcional: Docker e Docker Compose para ambiente local com containers
+- Opcional: [Air](https://github.com/air-verse/air) e [Swag](https://github.com/swaggo/swag)
+- Opcional: Python 3, para rodar o script de seed
 
-## Instalação de Dependências
+## Instalação
 
-### 1. Instalar Go
-
-Se ainda não tiver o Go instalado, siga a instalação oficial para o seu sistema operacional:
-
-- https://go.dev/dl/
-
-### 2. Instalar dependências do projeto
-
-Na raiz do projeto, execute:
+Na raiz do projeto:
 
 ```bash
 go mod download
 ```
 
-Se quiser limpar e baixar novamente as dependências:
-
-```bash
-go mod tidy
-```
-
-### 3. Instalar PostgreSQL
-
-O projeto usa PostgreSQL como banco principal. Caso ainda não tenha o banco configurado, instale e inicie o PostgreSQL localmente.
-
-Exemplo de criação do banco local:
+Crie o banco local:
 
 ```bash
 createdb feel_the_night
 ```
 
-### 4. Instalar o Air
-
-O `air` é útil para recarregar automaticamente a API durante o desenvolvimento.
+Ferramentas opcionais:
 
 ```bash
 go install github.com/air-verse/air@latest
-```
-
-Depois, para rodar o projeto em modo watch:
-
-```bash
-air
-```
-
-### 5. Instalar o Swag
-
-O `swag` é usado para gerar a documentação Swagger a partir dos comentários da API.
-
-```bash
 go install github.com/swaggo/swag/cmd/swag@latest
-```
-
-Para regenerar os arquivos da documentação:
-
-```bash
-swag init -d ./cmd/api,./internal/handler,./internal/models,./internal/dto -g main.go
 ```
 
 ## Configuração da Env
 
-Crie um arquivo `.env` na raiz do projeto com base no exemplo abaixo:
+Copie o `.env.example` para `.env` e ajuste os valores:
 
 ```env
 APP_PORT=8080
@@ -150,52 +121,168 @@ DB_USER=postgres
 DB_PASSWORD=postgres
 DB_NAME=feel_the_night
 DB_SSLMODE=disable
+
+CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+JWT_SECRET=troque-por-um-segredo-aleatorio-com-pelo-menos-32-caracteres
 ```
 
-Você também pode usar o arquivo `.env.example` como referência.
+| Variável | Obrigatória | Descrição |
+|---|---|---|
+| `JWT_SECRET` | sim | Segredo usado para assinar os tokens. Precisa ter **pelo menos 32 caracteres**, senão a API não sobe. Para gerar: `openssl rand -base64 48`. |
+| `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_SSLMODE` | sim | Conexão com o PostgreSQL. |
+| `APP_PORT` | não | Porta local da API (padrão `8080`). Em produção, a variável `PORT` tem prioridade. |
+| `APP_ENV` | não | `production` ativa a configuração de proxies confiáveis; qualquer outro valor é tratado como desenvolvimento. |
+| `CORS_ORIGINS` | não | Origens liberadas no CORS, separadas por vírgula. Sem ela, valem as portas locais padrão do front. |
+| `RENDER_EXTERNAL_HOSTNAME` | não | Definida automaticamente pelo Render; ajusta o host e o esquema (`https`) do Swagger em produção. |
 
-## Banco de Dados
+O `.env` não é versionado. Em produção, as variáveis vêm do ambiente.
 
-O projeto utiliza PostgreSQL com GORM. A conexão é feita pela aplicação ao iniciar o servidor, conforme a configuração do `.env`.
-
-Quando a API inicia, o projeto tenta executar o `AutoMigrate` automaticamente através da conexão do banco.
-
-## Migrations
-
-A aplicação já faz o mapeamento automático dos modelos com GORM. Em outras palavras, ao iniciar o servidor, as tabelas definidas nos models podem ser criadas ou atualizadas conforme necessário.
-
-### Rodar a aplicação
+## Rodando a Aplicação
 
 ```bash
 go run ./cmd/api
 ```
 
-### Build da aplicação
-
-```bash
-go build -o ./bin/api ./cmd/api
-```
-
-### Rodar com Air
+Com hot reload (regenera o Swagger e recompila a cada alteração):
 
 ```bash
 air
 ```
 
-### Acessar a documentação Swagger
+Build:
 
-Após iniciar a API, a documentação fica disponível em:
+```bash
+go build -o ./bin/api ./cmd/api
+```
+
+## Documentação Swagger
+
+Com a API rodando:
 
 ```text
 http://localhost:8080/swagger/index.html
 ```
 
-Se a porta ou rota forem alteradas no `.env`, ajuste de acordo com a configuração atual.
+Para regenerar a documentação depois de alterar annotations ou DTOs:
+
+```bash
+swag init -d ./cmd/api,./internal/auth,./internal/user,./internal/character,./internal/guide,./internal/event,./internal/models,./internal/platform/httpx -g main.go
+```
+
+Rotas protegidas usam o esquema `BearerAuth`. No botão **Authorize**, cole o `access_token` recebido no login (com ou sem o prefixo `Bearer `).
+
+## Autenticação e Permissões
+
+### Fluxo
+
+1. Crie uma conta em `POST /users`. Toda conta nova começa como **iniciante**.
+2. Faça login em `POST /auth/login` com email e senha.
+3. A resposta traz um `access_token` (válido por 15 minutos) e um `refresh_token` (válido por 7 dias).
+4. Envie o access token nas rotas protegidas: `Authorization: Bearer <access_token>`.
+
+Login e cadastro têm **rate limit por IP**: 5 tentativas seguidas e depois 1 a cada 12 segundos. Acima disso, a API responde `429` com o header `Retry-After`.
+
+### Papéis
+
+| Ação | Iniciante | Veterano | Admin |
+|---|---|---|---|
+| Ler qualquer conteúdo | ✅ | ✅ | ✅ |
+| Criar guia | ❌ | ✅ | ✅ |
+| Editar guia | ❌ | só os próprios | qualquer |
+| Criar/editar personagem | ❌ | ✅ | ✅ |
+| Criar/editar evento | ❌ | ✅ | ✅ |
+| Editar a própria conta | ✅ | ✅ | ✅ (qualquer conta) |
+| Deletar qualquer conteúdo | ❌ | ❌ | ✅ |
+| Buscar usuário por email | ❌ | ❌ | ✅ |
+
+### Primeiro admin
+
+O papel nunca vem do corpo da requisição. Para criar o primeiro admin, cadastre a conta normalmente e promova direto no banco:
+
+```sql
+UPDATE users SET role = 'admin' WHERE email = 'seu@email.com';
+```
+
+Depois, faça login de novo: o papel vai dentro do token, então o token antigo continua com o papel anterior até expirar.
+
+## Endpoints
+
+| Método | Rota | Acesso | Descrição |
+|---|---|---|---|
+| `GET` | `/health` | público | Health check |
+| `POST` | `/auth/login` | público (rate limit) | Login; retorna access e refresh token |
+| `POST` | `/users` | público (rate limit) | Cadastro |
+| `GET` | `/users?email=` | admin | Busca usuário por email |
+| `GET` | `/users/:id` | público | Perfil público (sem email) |
+| `PATCH` | `/users/:id` | o próprio usuário ou admin | Atualiza a conta |
+| `DELETE` | `/users/:id` | admin | Remove usuário |
+| `GET` | `/characters?name=&type=` | público | Lista personagens (filtros opcionais) |
+| `GET` | `/characters/:id` | público | Busca personagem |
+| `POST` | `/characters` | veterano ou admin | Cria personagem |
+| `PATCH` | `/characters/:id` | veterano ou admin | Atualiza personagem |
+| `DELETE` | `/characters/:id` | admin | Remove personagem (recusado com `409` se houver guias vinculados) |
+| `GET` | `/guides?title=&page=&limit=` | público | Lista guias paginados |
+| `GET` | `/guides/:id` | público | Busca guia |
+| `POST` | `/guides` | veterano ou admin | Cria guia (o autor vem do token) |
+| `PATCH` | `/guides/:id` | autor ou admin | Atualiza guia |
+| `DELETE` | `/guides/:id` | admin | Remove guia |
+| `GET` | `/events?title=&upcoming=&page=&limit=` | público | Lista eventos paginados (`upcoming=true` mostra só os futuros) |
+| `GET` | `/events/:id` | público | Busca evento |
+| `POST` | `/events` | veterano ou admin | Cria evento (o autor vem do token) |
+| `PATCH` | `/events/:id` | veterano ou admin | Atualiza evento |
+| `DELETE` | `/events/:id` | admin | Remove evento |
+
+Detalhes de cada rota (corpo, respostas e códigos de erro) estão no Swagger.
+
+### Formatos de resposta
+
+Erros seguem sempre o mesmo formato:
+
+```json
+{ "error": "mensagem" }
+```
+
+Listagens paginadas (guias e eventos):
+
+```json
+{ "data": [], "page": 1, "limit": 20, "total": 0 }
+```
+
+Datas de evento usam o formato `AAAA-MM-DD`.
+
+## Banco de Dados
+
+A conexão é feita na subida da aplicação, com as variáveis `DB_*`. Ao iniciar, a API:
+
+1. roda o `AutoMigrate` do GORM para todos os models de `internal/models`;
+2. cria as foreign keys entre as tabelas (guias → usuários e personagens, eventos → usuários), caso ainda não existam.
+
+As exclusões são **soft delete**: o registro recebe uma data em `deleted_at` e deixa de aparecer nas consultas, mas continua na tabela.
+
+O `AutoMigrate` é prático em desenvolvimento, mas nunca remove colunas. Para produção com dados reais, o recomendado é migrar para migrations versionadas.
+
+## Testes
+
+```bash
+go test ./...
+```
+
+Para popular uma API local com dados de exemplo:
+
+```bash
+pip install -r requirements.txt
+python tests/seed_models.py
+```
+
+O script usa `BASE_URL` (padrão `http://localhost:8080`). Como as rotas de criação exigem veterano ou admin, a conta usada pelo seed precisa ter sido promovida antes.
 
 ## Observações
 
-- O projeto já possui os principais componentes da API estruturalmente organizados em `cmd`, `internal`, `docs` e `tmp`.
-- O banco de dados é gerenciado com GORM e o schema dos modelos fica em `internal/models/models.go`.
-- A documentação Swagger é gerada automaticamente a partir dos comentários de rotas e modelos.
-- O `air` é recomendado para desenvolvimento local, pois recarrega a aplicação ao salvar alterações.
-- O projeto pode ser expandido com novos módulos e endpoints conforme evolui o backend e o frontend do jogo.
+- A documentação em `docs/` é gerada pelo `swag`. Não edite esses arquivos à mão.
+- Mensagens de erro internas (banco, timeout) são logadas com zap e nunca expostas ao cliente; ele recebe apenas `"erro interno"`.
+- Toda requisição tem timeout de 10 segundos.
+- Em produção (`APP_ENV=production`), as faixas de IP do proxy precisam estar configuradas em `internal/app/routes.go` para o rate limit identificar o IP real de cada cliente.
+
+## Licença
+
+Distribuído sob a licença descrita no arquivo [LICENSE](LICENSE).

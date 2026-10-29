@@ -1,27 +1,33 @@
-package services
+package guide
 
 import (
 	"context"
+	"errors"
 
-	"github.com/kisalto/Feel-The-Night-Swagger/internal/database"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/models"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/platform/apperr"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/platform/database"
 	"gorm.io/gorm"
 )
 
-type GuideService struct {
+var (
+	ErrCharacterNotFound = errors.New("Personagem nao encontrado")
+)
+
+type Service struct {
 	db *gorm.DB
 }
 
-func NewGuideService(db *gorm.DB) *GuideService {
-	return &GuideService{db: db}
+func NewService(db *gorm.DB) *Service {
+	return &Service{db: db}
 }
 
-func (s *GuideService) CreateGuide(ctx context.Context, guide *models.Guide) error {
+func (s *Service) CreateGuide(ctx context.Context, guide *models.Guide) error {
 	// CreatedAt o GORM preenche sozinho; Likes/Dislikes têm default 0 no model
 	var count int64
 	if err := s.db.WithContext(ctx).
 		Model(&models.Character{}).
-		Where("Character_id = ?", guide.CharacterID).
+		Where("character_id = ?", guide.CharacterID).
 		Count(&count).Error; err != nil {
 		return err
 	}
@@ -31,10 +37,9 @@ func (s *GuideService) CreateGuide(ctx context.Context, guide *models.Guide) err
 
 	return s.db.WithContext(ctx).Create(guide).Error
 
-	// return s.db.WithContext(ctx).Create(guide).Error
 }
 
-func (s *GuideService) GetGuideById(ctx context.Context, id uint) (*models.Guide, error) {
+func (s *Service) GetGuideById(ctx context.Context, id uint) (*models.Guide, error) {
 	var guide models.Guide
 	if err := s.db.WithContext(ctx).First(&guide, id).Error; err != nil {
 		return nil, err
@@ -42,7 +47,7 @@ func (s *GuideService) GetGuideById(ctx context.Context, id uint) (*models.Guide
 	return &guide, nil
 }
 
-func (s *GuideService) GetGuides(ctx context.Context, title string, page, limit int) ([]models.Guide, int64, error) {
+func (s *Service) GetGuides(ctx context.Context, title string, page, limit int) ([]models.Guide, int64, error) {
 	query := s.db.WithContext(ctx).Model(&models.Guide{})
 	if title != "" {
 		query = query.Where("title ILIKE ?", "%"+database.EscapeLike(title)+"%")
@@ -67,7 +72,7 @@ func (s *GuideService) GetGuides(ctx context.Context, title string, page, limit 
 	return guides, total, nil
 }
 
-func (s *GuideService) DeleteGuideById(ctx context.Context, id uint) error {
+func (s *Service) DeleteGuideById(ctx context.Context, id uint) error {
 	result := s.db.WithContext(ctx).Delete(&models.Guide{}, id)
 	if result.Error != nil {
 		return result.Error
@@ -78,7 +83,7 @@ func (s *GuideService) DeleteGuideById(ctx context.Context, id uint) error {
 	return nil
 }
 
-func (s *GuideService) UpdateGuide(ctx context.Context, id uint, guide *models.Guide) (*models.Guide, error) {
+func (s *Service) UpdateGuide(ctx context.Context, id uint, guide *models.Guide) (*models.Guide, error) {
 	existingGuide, err := s.GetGuideById(ctx, id)
 	if err != nil {
 		return nil, err
@@ -102,7 +107,7 @@ func (s *GuideService) UpdateGuide(ctx context.Context, id uint, guide *models.G
 	}
 
 	if len(updates) == 0 {
-		return nil, ErrNoUpdateData
+		return nil, apperr.ErrNoUpdateData
 	}
 
 	if err := s.db.WithContext(ctx).Model(existingGuide).Updates(updates).Error; err != nil {

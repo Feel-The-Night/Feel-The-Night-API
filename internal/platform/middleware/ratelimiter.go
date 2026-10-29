@@ -8,9 +8,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/platform/httpx"
 	"golang.org/x/time/rate"
-
-	"github.com/kisalto/Feel-The-Night-Swagger/internal/dto"
 )
 
 type client struct {
@@ -25,7 +24,7 @@ type IPRateLimiter struct {
 	burst   int
 }
 
-func NewIpRateLimiter(r rate.Limit, burst int) *IPRateLimiter {
+func NewIPRateLimiter(r rate.Limit, burst int) *IPRateLimiter {
 	l := &IPRateLimiter{
 		clients: make(map[string]*client),
 		r:       r,
@@ -71,7 +70,7 @@ func (l *IPRateLimiter) Middleware() gin.HandlerFunc {
 		if delay := res.Delay(); delay > 0 {
 			res.Cancel()
 			c.Header("Retry-After", strconv.Itoa(int(math.Ceil(delay.Seconds()))))
-			c.AbortWithStatusJSON(http.StatusTooManyRequests, dto.ErrorResponse{
+			c.AbortWithStatusJSON(http.StatusTooManyRequests, httpx.ErrorResponse{
 				Error: "Muitas tentativas, tente novamente mais tarde",
 			})
 			return

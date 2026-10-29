@@ -1,4 +1,4 @@
-package handler
+package user
 
 import (
 	"errors"
@@ -7,18 +7,18 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
-	dto "github.com/kisalto/Feel-The-Night-Swagger/internal/dto"
-	"github.com/kisalto/Feel-The-Night-Swagger/internal/middleware"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/models"
-	"github.com/kisalto/Feel-The-Night-Swagger/internal/services"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/platform/apperr"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/platform/httpx"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/platform/middleware"
 )
 
-type UserHandler struct {
-	userService *services.UserService
+type Handler struct {
+	userService *Service
 }
 
-func NewUserHandler(userService *services.UserService) *UserHandler {
-	return &UserHandler{userService: userService}
+func NewHandler(userService *Service) *Handler {
+	return &Handler{userService: userService}
 }
 
 // CreateUser godoc
@@ -27,17 +27,17 @@ func NewUserHandler(userService *services.UserService) *UserHandler {
 // @Tags         User
 // @Accept       json
 // @Produce      json
-// @Param        user  body      dto.CreateUserInput  true  "Dados do usuário"
-// @Success      201   {object}  dto.UserResponse
-// @Failure      400   {object}  dto.ErrorResponse
-// @Failure      409   {object}  dto.ErrorResponse
+// @Param        user  body      CreateInput  true  "Dados do usuário"
+// @Success      201   {object}  Response
+// @Failure      400   {object}  httpx.ErrorResponse
+// @Failure      409   {object}  httpx.ErrorResponse
 // @Router       /users [post]
-func (h *UserHandler) CreateUser(c *gin.Context) {
-	logRequest(c, "User", "CreateUser")
+func (h *Handler) CreateUser(c *gin.Context) {
+	httpx.LogRequest(c, "User", "CreateUser")
 
-	var input dto.CreateUserInput
+	var input CreateInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "corpo da requisição inválido"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "corpo da requisição inválido"})
 		return
 	}
 
@@ -50,11 +50,11 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	}
 
 	if err := h.userService.CreateUser(c.Request.Context(), &user); err != nil {
-		if errors.Is(err, services.ErrEmailTaken) {
-			c.JSON(http.StatusConflict, dto.ErrorResponse{Error: "email já cadastrado"})
+		if errors.Is(err, ErrEmailTaken) {
+			c.JSON(http.StatusConflict, httpx.ErrorResponse{Error: "email já cadastrado"})
 			return
 		}
-		internalError(c, "User", "CreateUser", err)
+		httpx.InternalError(c, "User", "CreateUser", err)
 		return
 	}
 
@@ -67,26 +67,26 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 // @Tags         User
 // @Produce      json
 // @Param        id   path      int  true  "ID do usuário" minimum(1)
-// @Success      200  {object}  dto.PublicUserResponse
-// @Failure      400  {object}  dto.ErrorResponse
-// @Failure      404  {object}  dto.ErrorResponse
+// @Success      200  {object}  PublicResponse
+// @Failure      400  {object}  httpx.ErrorResponse
+// @Failure      404  {object}  httpx.ErrorResponse
 // @Router       /users/{id} [get]
-func (h *UserHandler) GetUserById(c *gin.Context) {
-	logRequest(c, "User", "GetUserById")
+func (h *Handler) GetUserById(c *gin.Context) {
+	httpx.LogRequest(c, "User", "GetUserById")
 
-	var input dto.UserIDInput
+	var input IDInput
 	if err := c.ShouldBindUri(&input); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "id inválido"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "id inválido"})
 		return
 	}
 
 	user, err := h.userService.GetUserById(c.Request.Context(), input.ID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "usuário não encontrado"})
+			c.JSON(http.StatusNotFound, httpx.ErrorResponse{Error: "usuário não encontrado"})
 			return
 		}
-		internalError(c, "User", "GetUserById", err)
+		httpx.InternalError(c, "User", "GetUserById", err)
 		return
 	}
 
@@ -99,25 +99,25 @@ func (h *UserHandler) GetUserById(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        email  query     string  true  "Email do usuário"
-// @Success      200    {object}  dto.UserResponse
-// @Failure      400    {object}  dto.ErrorResponse
+// @Success      200    {object}  Response
+// @Failure      400    {object}  httpx.ErrorResponse
 // @Router       /users [get]
-func (h *UserHandler) GetUserByEmail(c *gin.Context) {
-	logRequest(c, "User", "GetUserByEmail")
+func (h *Handler) GetUserByEmail(c *gin.Context) {
+	httpx.LogRequest(c, "User", "GetUserByEmail")
 
-	var input dto.UserEmailInput
+	var input EmailInput
 	if err := c.ShouldBindQuery(&input); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "email inválido"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "email inválido"})
 		return
 	}
 
 	user, err := h.userService.GetUserByEmail(c.Request.Context(), input.Email)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "usuário não encontrado"})
+			c.JSON(http.StatusNotFound, httpx.ErrorResponse{Error: "usuário não encontrado"})
 			return
 		}
-		internalError(c, "User", "GetUserByEmail", err)
+		httpx.InternalError(c, "User", "GetUserByEmail", err)
 		return
 	}
 
@@ -131,23 +131,23 @@ func (h *UserHandler) GetUserByEmail(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        id   path      int  true  "ID do usuário" minimum(1)
 // @Success      200  {object}  map[string]string
-// @Failure      400  {object}  dto.ErrorResponse
+// @Failure      400  {object}  httpx.ErrorResponse
 // @Router       /users/{id} [delete]
-func (h *UserHandler) DeleteUserById(c *gin.Context) {
-	logRequest(c, "User", "DeleteUserById")
+func (h *Handler) DeleteUserById(c *gin.Context) {
+	httpx.LogRequest(c, "User", "DeleteUserById")
 
-	var input dto.UserIDInput
+	var input IDInput
 	if err := c.ShouldBindUri(&input); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "id inválido"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "id inválido"})
 		return
 	}
 
 	if err := h.userService.DeleteUserById(c.Request.Context(), input.ID); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "usuário não encontrado"})
+			c.JSON(http.StatusNotFound, httpx.ErrorResponse{Error: "usuário não encontrado"})
 			return
 		}
-		internalError(c, "User", "DeleteUserById", err)
+		httpx.InternalError(c, "User", "DeleteUserById", err)
 		return
 	}
 
@@ -162,33 +162,33 @@ func (h *UserHandler) DeleteUserById(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id    path      int                  true  "ID do usuário" minimum(1)
-// @Param        body  body      dto.UpdateUserInput  true  "Dados para atualização"
-// @Success      200   {object}  dto.UserResponse
-// @Failure      400   {object}  dto.ErrorResponse
+// @Param        body  body      UpdateInput  true  "Dados para atualização"
+// @Success      200   {object}  Response
+// @Failure      400   {object}  httpx.ErrorResponse
 // @Router       /users/{id} [patch]
-func (h *UserHandler) UpdateUser(c *gin.Context) {
-	logRequest(c, "User", "UpdateUser")
+func (h *Handler) UpdateUser(c *gin.Context) {
+	httpx.LogRequest(c, "User", "UpdateUser")
 
-	var uriInput dto.UserIDInput
+	var uriInput IDInput
 	if err := c.ShouldBindUri(&uriInput); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "id inválido"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "id inválido"})
 		return
 	}
 
 	// Só o próprio usuário ou um admin pode editar a conta
 	claims := middleware.GetClaims(c)
 	if claims == nil {
-		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "não autenticado"})
+		c.JSON(http.StatusUnauthorized, httpx.ErrorResponse{Error: "não autenticado"})
 		return
 	}
 	if models.Role(claims.Role) != models.RoleAdmin && uint(claims.UserID) != uint(uriInput.ID) {
-		c.JSON(http.StatusForbidden, dto.ErrorResponse{Error: "você só pode editar sua própria conta"})
+		c.JSON(http.StatusForbidden, httpx.ErrorResponse{Error: "você só pode editar sua própria conta"})
 		return
 	}
 
-	var bodyInput dto.UpdateUserInput
+	var bodyInput UpdateInput
 	if err := c.ShouldBindJSON(&bodyInput); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "corpo da requisição inválido"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "corpo da requisição inválido"})
 		return
 	}
 
@@ -203,13 +203,13 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, gorm.ErrRecordNotFound):
-			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "usuário não encontrado"})
-		case errors.Is(err, services.ErrNoUpdateData):
-			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
-		case errors.Is(err, services.ErrEmailTaken):
-			c.JSON(http.StatusConflict, dto.ErrorResponse{Error: "email já cadastrado"})
+			c.JSON(http.StatusNotFound, httpx.ErrorResponse{Error: "usuário não encontrado"})
+		case errors.Is(err, apperr.ErrNoUpdateData):
+			c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: err.Error()})
+		case errors.Is(err, ErrEmailTaken):
+			c.JSON(http.StatusConflict, httpx.ErrorResponse{Error: "email já cadastrado"})
 		default:
-			internalError(c, "User", "UpdateUser", err)
+			httpx.InternalError(c, "User", "UpdateUser", err)
 		}
 		return
 	}
@@ -218,8 +218,8 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 }
 
 // toUserResponse: resposta completa (com email), para o próprio usuário e admin.
-func toUserResponse(u *models.User) dto.UserResponse {
-	return dto.UserResponse{
+func toUserResponse(u *models.User) Response {
+	return Response{
 		UserID:           u.UserID,
 		Nickname:         u.Nickname,
 		Email:            u.Email,
@@ -231,8 +231,8 @@ func toUserResponse(u *models.User) dto.UserResponse {
 }
 
 // toPublicUserResponse: perfil público, sem email.
-func toPublicUserResponse(u *models.User) dto.PublicUserResponse {
-	return dto.PublicUserResponse{
+func toPublicUserResponse(u *models.User) PublicResponse {
+	return PublicResponse{
 		UserID:           u.UserID,
 		Nickname:         u.Nickname,
 		DiscordID:        u.DiscordID,

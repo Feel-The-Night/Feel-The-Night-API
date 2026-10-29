@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kisalto/Feel-The-Night-Swagger/internal/auth"
-	"github.com/kisalto/Feel-The-Night-Swagger/internal/dto"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/models"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/platform/httpx"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/platform/jwt"
 	"go.uber.org/zap"
 )
 
@@ -25,18 +25,18 @@ func RequireAuth() gin.HandlerFunc {
 		}
 
 		if tokenString == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "token ausente"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, httpx.ErrorResponse{Error: "token ausente"})
 			return
 		}
 
-		claims, err := auth.ValidateAccessToken(tokenString)
+		claims, err := jwt.ValidateAccessToken(tokenString)
 		if err != nil {
 			msg := "token invalido"
-			if errors.Is(err, auth.ErrExpiredToken) {
+			if errors.Is(err, jwt.ErrExpiredToken) {
 				msg = "token expirado"
 			}
 
-			c.AbortWithStatusJSON(http.StatusUnauthorized, dto.ErrorResponse{Error: msg})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, httpx.ErrorResponse{Error: msg})
 			return
 		}
 		c.Set(claimsKey, claims)
@@ -49,7 +49,7 @@ func RequireRole(roles ...models.Role) gin.HandlerFunc {
 		claims := GetClaims(c)
 		if claims == nil {
 			// RequireAuth não rodou antes (erro de configuração da rota)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "Missing or invalid token"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, httpx.ErrorResponse{Error: "missing or invalid token"})
 			return
 		}
 
@@ -58,7 +58,7 @@ func RequireRole(roles ...models.Role) gin.HandlerFunc {
 				zap.Int64("user_id", claims.UserID),
 				zap.String("role", claims.Role),
 			)
-			c.AbortWithStatusJSON(http.StatusForbidden, dto.ErrorResponse{Error: "Access denied"})
+			c.AbortWithStatusJSON(http.StatusForbidden, httpx.ErrorResponse{Error: "access denied"})
 			return
 		}
 
@@ -66,11 +66,11 @@ func RequireRole(roles ...models.Role) gin.HandlerFunc {
 	}
 }
 
-func GetClaims(c *gin.Context) *auth.Claims {
+func GetClaims(c *gin.Context) *jwt.Claims {
 	v, ok := c.Get(claimsKey)
 	if !ok {
 		return nil
 	}
-	claims, _ := v.(*auth.Claims)
+	claims, _ := v.(*jwt.Claims)
 	return claims
 }

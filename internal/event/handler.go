@@ -1,4 +1,4 @@
-package handler
+package event
 
 import (
 	"errors"
@@ -8,20 +8,20 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
-	"github.com/kisalto/Feel-The-Night-Swagger/internal/dto"
-	"github.com/kisalto/Feel-The-Night-Swagger/internal/middleware"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/models"
-	"github.com/kisalto/Feel-The-Night-Swagger/internal/services"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/platform/apperr"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/platform/httpx"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/platform/middleware"
 )
 
 const dayLayout = "2006-01-02"
 
-type EventHandler struct {
-	eventService *services.EventService
+type Handler struct {
+	eventService *Service
 }
 
-func NewEventHandler(eventService *services.EventService) *EventHandler {
-	return &EventHandler{eventService: eventService}
+func NewHandler(eventService *Service) *Handler {
+	return &Handler{eventService: eventService}
 }
 
 func parseDay(s string) (time.Time, error) {
@@ -35,21 +35,21 @@ func parseDay(s string) (time.Time, error) {
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        event  body      dto.CreateEventInput  true  "Dados do Evento"
-// @Success      201    {object}  dto.EventResponse
+// @Param        event  body      CreateInput  true  "Dados do Evento"
+// @Success      201    {object}  Response
 // @Router       /events [post]
-func (h *EventHandler) CreateEvent(c *gin.Context) {
-	logRequest(c, "Event", "CreateEvent")
+func (h *Handler) CreateEvent(c *gin.Context) {
+	httpx.LogRequest(c, "Event", "CreateEvent")
 
-	var input dto.CreateEventInput
+	var input CreateInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "corpo da requisição inválido"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "corpo da requisição inválido"})
 		return
 	}
 
 	day, err := parseDay(input.Day)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "data inválida, use AAAA-MM-DD"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "data inválida, use AAAA-MM-DD"})
 		return
 	}
 
@@ -64,7 +64,7 @@ func (h *EventHandler) CreateEvent(c *gin.Context) {
 	}
 
 	if err := h.eventService.CreateEvent(c.Request.Context(), &event); err != nil {
-		internalError(c, "Event", "CreateEvent", err)
+		httpx.InternalError(c, "Event", "CreateEvent", err)
 		return
 	}
 
@@ -76,25 +76,25 @@ func (h *EventHandler) CreateEvent(c *gin.Context) {
 // @Tags         Event
 // @Produce      json
 // @Param        id   path      int  true  "ID do evento" minimum(1)
-// @Success      200  {object}  dto.EventResponse
+// @Success      200  {object}  Response
 // @Router       /events/{id} [get]
-func (h *EventHandler) GetEventById(c *gin.Context) {
-	logRequest(c, "Event", "GetEventById")
+func (h *Handler) GetEventById(c *gin.Context) {
+	httpx.LogRequest(c, "Event", "GetEventById")
 
-	var input dto.EventIDInput
+	var input IDInput
 
 	if err := c.ShouldBindUri(&input); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "id inválido"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "id inválido"})
 		return
 	}
 
 	event, err := h.eventService.GetEventById(c.Request.Context(), input.ID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "evento não encontrado"})
+			c.JSON(http.StatusNotFound, httpx.ErrorResponse{Error: "evento não encontrado"})
 			return
 		}
-		internalError(c, "Event", "GetEventById", err)
+		httpx.InternalError(c, "Event", "GetEventById", err)
 		return
 	}
 
@@ -109,22 +109,22 @@ func (h *EventHandler) GetEventById(c *gin.Context) {
 // @Param        id   path      int  true  "ID do evento" minimum(1)
 // @Success      200  {object}  map[string]string
 // @Router       /events/{id} [delete]
-func (h *EventHandler) DeleteEventById(c *gin.Context) {
-	logRequest(c, "Event", "DeleteEventById")
+func (h *Handler) DeleteEventById(c *gin.Context) {
+	httpx.LogRequest(c, "Event", "DeleteEventById")
 
-	var input dto.EventIDInput
+	var input IDInput
 
 	if err := c.ShouldBindUri(&input); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "id inválido"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "id inválido"})
 		return
 	}
 
 	if err := h.eventService.DeleteEventById(c.Request.Context(), input.ID); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "evento não encontrado"})
+			c.JSON(http.StatusNotFound, httpx.ErrorResponse{Error: "evento não encontrado"})
 			return
 		}
-		internalError(c, "Event", "DeleteEventById", err)
+		httpx.InternalError(c, "Event", "DeleteEventById", err)
 		return
 	}
 
@@ -138,30 +138,30 @@ func (h *EventHandler) DeleteEventById(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id    path      int                      true  "ID do evento" minimum(1)
-// @Param        body  body      dto.UpdateEventInput true  "Dados para atualização"
-// @Success      200   {object}  dto.EventResponse
+// @Param        body  body      UpdateInput true  "Dados para atualização"
+// @Success      200   {object}  Response
 // @Router       /events/{id} [patch]
-func (h *EventHandler) UpdateEvent(c *gin.Context) {
-	logRequest(c, "Event", "UpdateEvent")
+func (h *Handler) UpdateEvent(c *gin.Context) {
+	httpx.LogRequest(c, "Event", "UpdateEvent")
 
-	var uriInput dto.EventIDInput
-	var bodyInput dto.UpdateEventInput
+	var uriInput IDInput
+	var bodyInput UpdateInput
 	var day time.Time
 
 	if err := c.ShouldBindUri(&uriInput); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "id inválido"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "id inválido"})
 		return
 	}
 
 	if err := c.ShouldBindJSON(&bodyInput); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "corpo da requisição inválido"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "corpo da requisição inválido"})
 		return
 	}
 
 	if bodyInput.Day != "" {
 		parsed, err := parseDay(bodyInput.Day)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "data inválida, use AAAA-MM-DD"})
+			c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "data inválida, use AAAA-MM-DD"})
 			return
 		}
 		day = parsed
@@ -177,14 +177,14 @@ func (h *EventHandler) UpdateEvent(c *gin.Context) {
 	updatedEvent, err := h.eventService.UpdateEventById(c.Request.Context(), uriInput.ID, &eventModel)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "evento não encontrado"})
+			c.JSON(http.StatusNotFound, httpx.ErrorResponse{Error: "evento não encontrado"})
 			return
 		}
-		if errors.Is(err, services.ErrNoUpdateData) {
-			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
+		if errors.Is(err, apperr.ErrNoUpdateData) {
+			c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: err.Error()})
 			return
 		}
-		internalError(c, "Event", "UpdateEvent", err)
+		httpx.InternalError(c, "Event", "UpdateEvent", err)
 		return
 	}
 
@@ -196,27 +196,28 @@ func (h *EventHandler) UpdateEvent(c *gin.Context) {
 // @Description  Lista eventos com filtros opcionais de título e paginação.
 // @Tags         Event
 // @Produce      json
-// @Param        title  query     string  false  "Filtrar por título"
-// @Param        page   query     int     false  "Página"           default(1)  minimum(1)
-// @Param        limit  query     int     false  "Itens por página"  default(20) minimum(1) maximum(100)
-// @Success      200    {object}  dto.PageResponse[dto.EventResponse]
-// @Router       /events [get]
-func (h *EventHandler) GetEvents(c *gin.Context) {
-	logRequest(c, "Event", "GetEvents")
+// @Param        title    query     string  false  "Filtrar por título"
+// @Param        upcoming query     bool    false  "Só eventos futuros"
+// @Param        page     query     int     false  "Página"           default(1)  minimum(1)
+// @Param        limit    query     int     false  "Itens por página"  default(20) minimum(1) maximum(100)
+// @Success      200      {object}  httpx.PageResponse[Response]
+// @Router       /events  [get]
+func (h *Handler) GetEvents(c *gin.Context) {
+	httpx.LogRequest(c, "Event", "GetEvents")
 
-	var query dto.EventListQuery
+	var query ListQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "parâmetros de query inválidos"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "parâmetros de query inválidos"})
 		return
 	}
 
 	events, total, err := h.eventService.GetEvents(c.Request.Context(), query.Title, query.Upcoming, query.Page, query.Limit)
 	if err != nil {
-		internalError(c, "Event", "GetEvents", err)
+		httpx.InternalError(c, "Event", "GetEvents", err)
 		return
 	}
 
-	data := make([]dto.EventResponse, len(events))
+	data := make([]Response, len(events))
 	for i, e := range events {
 		data[i] = toEventResponse(&e)
 	}
@@ -226,7 +227,7 @@ func (h *EventHandler) GetEvents(c *gin.Context) {
 	// 	"events": eventResponses,
 	// })
 
-	c.JSON(http.StatusOK, dto.PageResponse[dto.EventResponse]{
+	c.JSON(http.StatusOK, httpx.PageResponse[Response]{
 		Data:  data,
 		Page:  query.Page,
 		Limit: query.Limit,
@@ -234,8 +235,8 @@ func (h *EventHandler) GetEvents(c *gin.Context) {
 	})
 }
 
-func toEventResponse(e *models.Event) dto.EventResponse {
-	return dto.EventResponse{
+func toEventResponse(e *models.Event) Response {
+	return Response{
 		EventID:     e.EventID,
 		Title:       e.Title,
 		Description: e.Description,

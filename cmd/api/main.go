@@ -11,8 +11,8 @@ import (
 
 	// Importe o pacote docs sem o "_" para poder acessar a variável SwaggerInfo
 	"github.com/kisalto/Feel-The-Night-Swagger/docs"
-	"github.com/kisalto/Feel-The-Night-Swagger/internal/database"
-	"github.com/kisalto/Feel-The-Night-Swagger/internal/handler"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/app"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/platform/database"
 )
 
 // @title           Feel The Night API
@@ -73,7 +73,7 @@ func main() {
 	}
 
 	// 4. Carrega Rotas
-	routes := handler.Setup(db)
+	routes := app.NewRouter(db)
 
 	// 5. Inicia o Servidor
 	serverPort := fmt.Sprintf(":%s", port)

@@ -1,25 +1,31 @@
-package services
+package character
 
 import (
 	"context"
 	"errors"
 
-	"github.com/kisalto/Feel-The-Night-Swagger/internal/database"
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/models"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/platform/apperr"
+	"github.com/kisalto/Feel-The-Night-Swagger/internal/platform/database"
 	"gorm.io/gorm"
 )
 
-type CharacterService struct {
+var (
+	ErrExists    = errors.New("personagem já existe")
+	ErrHasGuides = errors.New("personagem tem guias")
+)
+
+type Service struct {
 	db *gorm.DB
 }
 
-func NewCharacterService(db *gorm.DB) *CharacterService {
-	return &CharacterService{db: db}
+func NewService(db *gorm.DB) *Service {
+	return &Service{db: db}
 }
 
 // nameTaken verifica se o nome já é usado por outro personagem (exceto exceptID).
 // Compara sem diferenciar maiúsculas: "Ryu" e "ryu" são o mesmo personagem.
-func (s *CharacterService) nameTaken(ctx context.Context, name string, exceptID uint) (bool, error) {
+func (s *Service) nameTaken(ctx context.Context, name string, exceptID uint) (bool, error) {
 	var count int64
 	err := s.db.WithContext(ctx).
 		Model(&models.Character{}).
@@ -28,25 +34,25 @@ func (s *CharacterService) nameTaken(ctx context.Context, name string, exceptID 
 	return count > 0, err
 }
 
-func (s *CharacterService) CreateCharacter(ctx context.Context, character *models.Character) error {
+func (s *Service) CreateCharacter(ctx context.Context, character *models.Character) error {
 	taken, err := s.nameTaken(ctx, character.Name, 0)
 	if err != nil {
 		return err
 	}
 	if taken {
-		return ErrCharacterExists
+		return ErrExists
 	}
 
 	if err := s.db.WithContext(ctx).Create(character).Error; err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return ErrCharacterExists
+			return ErrExists
 		}
 		return err
 	}
 	return nil
 }
 
-func (s *CharacterService) GetCharacterById(ctx context.Context, id uint) (*models.Character, error) {
+func (s *Service) GetCharacterById(ctx context.Context, id uint) (*models.Character, error) {
 	var character models.Character
 	if err := s.db.WithContext(ctx).First(&character, id).Error; err != nil {
 		return nil, err
@@ -54,7 +60,7 @@ func (s *CharacterService) GetCharacterById(ctx context.Context, id uint) (*mode
 	return &character, nil
 }
 
-func (s *CharacterService) DeleteCharacterById(ctx context.Context, id uint) error {
+func (s *Service) DeleteCharacterById(ctx context.Context, id uint) error {
 	var count int64
 	if err := s.db.WithContext(ctx).
 		Model(&models.Guide{}).
@@ -63,7 +69,7 @@ func (s *CharacterService) DeleteCharacterById(ctx context.Context, id uint) err
 		return err
 	}
 	if count > 0 {
-		return ErrCharacterHasGuides
+		return ErrHasGuides
 	}
 
 	result := s.db.WithContext(ctx).Delete(&models.Character{}, id)
@@ -76,7 +82,7 @@ func (s *CharacterService) DeleteCharacterById(ctx context.Context, id uint) err
 	return nil
 }
 
-func (s *CharacterService) UpdateCharacterById(ctx context.Context, id uint, character *models.Character) (*models.Character, error) {
+func (s *Service) UpdateCharacterById(ctx context.Context, id uint, character *models.Character) (*models.Character, error) {
 	existingCharacter, err := s.GetCharacterById(ctx, id)
 	if err != nil {
 		return nil, err
@@ -90,7 +96,7 @@ func (s *CharacterService) UpdateCharacterById(ctx context.Context, id uint, cha
 			return nil, err
 		}
 		if taken {
-			return nil, ErrCharacterExists
+			return nil, ErrExists
 		}
 		updates["name"] = character.Name
 	}
@@ -105,12 +111,12 @@ func (s *CharacterService) UpdateCharacterById(ctx context.Context, id uint, cha
 	}
 
 	if len(updates) == 0 {
-		return nil, ErrNoUpdateData
+		return nil, apperr.ErrNoUpdateData
 	}
 
 	if err := s.db.WithContext(ctx).Model(existingCharacter).Updates(updates).Error; err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return nil, ErrCharacterExists
+			return nil, ErrExists
 		}
 		return nil, err
 	}
@@ -118,7 +124,7 @@ func (s *CharacterService) UpdateCharacterById(ctx context.Context, id uint, cha
 	return existingCharacter, nil
 }
 
-func (s *CharacterService) GetCharacters(ctx context.Context, name, charType string) ([]models.Character, error) {
+func (s *Service) GetCharacters(ctx context.Context, name, charType string) ([]models.Character, error) {
 	query := s.db.WithContext(ctx).Model(&models.Character{})
 	if name != "" {
 		query = query.Where("name ILIKE ?", "%"+database.EscapeLike(name)+"%")
