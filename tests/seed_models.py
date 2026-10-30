@@ -1,14 +1,14 @@
 """
-Seed script: cria 1 registro de cada model via API (Feel-The-Night-Swagger)
-Requisitos: pip install requests
+Seed script: creates one record of each model through the API (Feel-The-Night-Swagger)
+Requirements: pip install requests
 
-Uso:
+Usage:
     python3 seed_models.py
     BASE_URL=http://localhost:8080 python3 tests/seed_models.py
 
-O endpoint de criação não retorna token. O script faz login em /auth/login
-e usa o access_token nas requisições seguintes. Contas novas começam como
-"iniciante"; endpoints de criação de conteúdo exigem "veterano" ou "admin".
+The sign-up endpoint does not return a token. The script logs in at /auth/login
+and uses the access_token in the following requests. New accounts start as
+"beginner"; content creation endpoints require "veteran" or "admin".
 """
 
 import os
@@ -34,16 +34,16 @@ def post(path: str, body: dict, *, hide_response: bool = False) -> dict:
     try:
         data = resp.json()
     except ValueError:
-        print("!! Resposta não é JSON:", resp.text)
+        print("!! Response is not JSON:", resp.text)
         sys.exit(1)
     if hide_response:
-        print("Resposta recebida (conteúdo omitido).")
+        print("Response received (content omitted).")
     else:
         print(json.dumps(data, indent=2, ensure_ascii=False))
     if not resp.ok:
         if hide_response:
             print(json.dumps(data, indent=2, ensure_ascii=False))
-        print(f"!! Requisição falhou com status {resp.status_code}")
+        print(f"!! Request failed with status {resp.status_code}")
         sys.exit(1)
     return data
 
@@ -52,7 +52,7 @@ def extract_value(data: dict, *keys):
     for k in keys:
         if k in data and data[k] is not None:
             return data[k]
-    # tenta dentro de "data" caso a resposta venha envelopada
+    # also look inside "data" in case the response is wrapped
     if "data" in data and isinstance(data["data"], dict):
         for k in keys:
             if k in data["data"] and data["data"][k] is not None:
@@ -61,7 +61,7 @@ def extract_value(data: dict, *keys):
 
 
 def main():
-    print("==> Criando User...")
+    print("==> Creating User...")
     credentials = {
         "discord_id": "kisaltoo",
         "email": "kisalto@email.com",
@@ -76,60 +76,60 @@ def main():
     })
     user_id = extract_value(user_resp, "UserID", "user_id", "id")
     if user_id is None:
-        print("!! Não consegui extrair o user_id da resposta acima. "
-              "Ajuste as chaves em extract_value() e rode de novo.")
+        print("!! Could not extract user_id from the response above. "
+              "Adjust the keys in extract_value() and run again.")
         sys.exit(1)
-    print(f"User criado com ID: {user_id}\n")
+    print(f"User created with ID: {user_id}\n")
 
-    print("==> Autenticando usuário...")
+    print("==> Logging in...")
     login_resp = post(LOGIN_PATH, {
         "email": credentials["email"],
         "password": credentials["password"],
     }, hide_response=True)
     access_token = extract_value(login_resp, "access_token")
     if access_token is None:
-        print("!! Não consegui extrair o access_token da resposta de login.")
+        print("!! Could not extract access_token from the login response.")
         sys.exit(1)
     SESSION.headers.update({"Authorization": f"Bearer {access_token}"})
-    print("Login concluído; token configurado para as próximas requisições.\n")
-    print("!! Usuários novos têm perfil 'iniciante'; a API exige 'veterano' ou "
-          "'admin' para criar personagens, guias e eventos.\n")
+    print("Logged in; token set for the following requests.\n")
+    print("!! New users have the 'beginner' role; the API requires 'veteran' or "
+          "'admin' to create characters, guides and events.\n")
 
-    print("==> Criando Character...")
+    print("==> Creating Character...")
     char_resp = post(CHARACTERS_PATH, {
-        "description": "teste",
-        "name": "teste",
+        "description": "test",
+        "name": "test",
         "type": "shoto",
     })
     character_id = extract_value(char_resp, "CharacterID", "character_id", "id")
     if character_id is None:
-        print("!! Não consegui extrair o character_id da resposta acima. "
-              "Ajuste as chaves em extract_value() e rode de novo.")
+        print("!! Could not extract character_id from the response above. "
+              "Adjust the keys in extract_value() and run again.")
         sys.exit(1)
-    print(f"Character criado com ID: {character_id}\n")
+    print(f"Character created with ID: {character_id}\n")
 
-    print("==> Criando Guide...")
+    print("==> Creating Guide...")
     post(GUIDES_PATH, {
         "character_id": character_id,
-        "description": "teste",
+        "description": "test",
         "link": "http://localhost:8080/swagger/index.html",
-        "title": "teste",
+        "title": "test",
         "type": "combo",
         "user_id": user_id,
     })
     print()
 
-    print("==> Criando Event...")
+    print("==> Creating Event...")
     post(EVENTS_PATH, {
         "day": "23/09/2026",
-        "description": "teste",
-        "title": "teste",
+        "description": "test",
+        "title": "test",
         "user_id": user_id,
     })
     print()
 
-    print("==> Concluído! (LastEvent não foi criado pois normalmente é "
-          "gerado a partir de um Event, não via payload direto)")
+    print("==> Done! (LastEvent was not created because it is normally "
+          "generated from an Event, not from a direct payload)")
 
 
 if __name__ == "__main__":

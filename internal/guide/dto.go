@@ -4,8 +4,8 @@ import (
 	"time"
 )
 
-// CreateInput representa os dados para criação de um guia.
-// O autor (UserID) vem do token, não do body.
+// CreateInput holds the data to create a guide.
+// The author (UserID) comes from the token, not from the body.
 type CreateInput struct {
 	Title       string `json:"title" binding:"required,max=254"`
 	BannerURL   string `json:"banner_url" binding:"omitempty,url"`
@@ -15,19 +15,19 @@ type CreateInput struct {
 	CharacterID uint   `json:"character_id" binding:"required,min=1"`
 }
 
-// IDInput valida o parâmetro :id na URL.
+// IDInput validates the :id URL parameter.
 type IDInput struct {
 	ID uint `uri:"id" binding:"required,min=1"`
 }
 
-// ListQuery são os filtros e a paginação de GET /guides.
+// ListQuery holds the filters and pagination for GET /guides.
 type ListQuery struct {
 	Title string `form:"title" binding:"omitempty,max=100"`
 	Page  int    `form:"page,default=1" binding:"min=1"`
 	Limit int    `form:"limit,default=20" binding:"min=1,max=100"`
 }
 
-// UpdateInput representa os campos opcionais para atualização (PATCH) de guia.
+// UpdateInput holds the optional fields for a guide update (PATCH).
 type UpdateInput struct {
 	Title       string `json:"title" binding:"omitempty,max=254"`
 	BannerURL   string `json:"banner_url" binding:"omitempty,url"`
@@ -36,7 +36,7 @@ type UpdateInput struct {
 	Link        string `json:"link" binding:"omitempty,url"`
 }
 
-// Response representa os dados do guia retornados nas respostas HTTP.
+// Response is the guide representation returned by the API.
 type Response struct {
 	GuideID      uint      `json:"guide_id"`
 	Title        string    `json:"title"`

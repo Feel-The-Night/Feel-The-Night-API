@@ -13,7 +13,7 @@ import (
 const defaultOrigins = "http://localhost:3000,http://localhost:5173,http://localhost:5174,http://localhost:5175"
 
 func CorsMiddleware() gin.HandlerFunc {
-	// CORS_ORIGINS=https://meusite.com,http://localhost:5173
+	// CORS_ORIGINS=https://mysite.com,http://localhost:5173
 	originString := os.Getenv("CORS_ORIGINS")
 	if originString == "" {
 		originString = defaultOrigins
@@ -34,7 +34,7 @@ func CorsMiddleware() gin.HandlerFunc {
 			h.Set("Access-Control-Allow-Origin", origin)
 			h.Set("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS")
 			h.Set("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization")
-			h.Set("Access-Control-Max-Age", "7200") // 2h: cacheia o preflight
+			h.Set("Access-Control-Max-Age", "7200") // 2h: caches the preflight response
 			h.Add("Vary", "Origin")
 
 			if c.Request.Method == http.MethodOptions {

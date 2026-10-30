@@ -8,7 +8,7 @@ import (
 )
 
 func TestAccessAndRefreshToken(t *testing.T) {
-	t.Setenv("JWT_SECRET", "um-segredo-de-teste-com-mais-de-32-chars")
+	t.Setenv("JWT_SECRET", "a-test-secret-with-more-than-32-chars")
 
 	access, err := GenerateAccessToken(1, "a@b.com", "kisalto", "admin")
 	require.NoError(t, err)

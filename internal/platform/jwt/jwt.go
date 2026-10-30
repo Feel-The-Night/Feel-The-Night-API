@@ -26,8 +26,8 @@ type RefreshClaims struct {
 }
 
 const (
-	AccessTokenDuration  = 15 * time.Minute   //15 minutos
-	RefreshTokenDuration = 7 * 24 * time.Hour // 7 dias
+	AccessTokenDuration  = 15 * time.Minute   // 15 minutes
+	RefreshTokenDuration = 7 * 24 * time.Hour // 7 days
 
 	issuer          = "auth-api"
 	audienceAccess  = "access"
@@ -72,17 +72,17 @@ func GenerateAccessToken(userID int64, email string, Nickname string, role strin
 		Name:   Nickname,
 		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
-			// Emissor
+			// Issuer
 			Issuer: issuer,
-			// Tipo de Token:
+			// Token type
 			Audience: jwt.ClaimStrings{audienceAccess},
-			// Para quem
+			// Subject (who the token belongs to)
 			Subject: fmt.Sprintf("%d", userID),
-			// Quando foi emitido
+			// Issued at
 			IssuedAt: jwt.NewNumericDate(now),
-			// Quando expira
+			// Expires at
 			ExpiresAt: jwt.NewNumericDate(now.Add(AccessTokenDuration)),
-			// Nao usar antes da data
+			// Not valid before
 			NotBefore: jwt.NewNumericDate(now),
 		},
 	}
@@ -91,7 +91,7 @@ func GenerateAccessToken(userID int64, email string, Nickname string, role strin
 
 	tokenString, err := token.SignedString(secret)
 	if err != nil {
-		return "", fmt.Errorf("erro ao assinar access token: %w", err)
+		return "", fmt.Errorf("failed to sign access token: %w", err)
 	}
 
 	return tokenString, nil
@@ -106,7 +106,7 @@ func GenerateRefreshToken(userID int64) (string, error) {
 
 	jti, err := newTokenID()
 	if err != nil {
-		return "", fmt.Errorf("erro ao gerar id do token: %w", err)
+		return "", fmt.Errorf("failed to generate token id: %w", err)
 	}
 
 	now := time.Now()
@@ -128,7 +128,7 @@ func GenerateRefreshToken(userID int64) (string, error) {
 
 	tokenString, err := token.SignedString(secret)
 	if err != nil {
-		return "", fmt.Errorf("erro ao assinar refresh token: %w", err)
+		return "", fmt.Errorf("failed to sign refresh token: %w", err)
 	}
 
 	return tokenString, nil
@@ -147,7 +147,7 @@ func parseToken(tokenString string, claims jwt.Claims, audience string) (*jwt.To
 		func(token *jwt.Token) (interface{}, error) {
 			return secret, nil
 		},
-		// só aceita HS256
+		// only accept HS256
 		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
 		jwt.WithIssuer(issuer),
 		jwt.WithAudience(audience),

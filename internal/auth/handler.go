@@ -22,17 +22,17 @@ func NewHandler(userService *user.Service) *Handler {
 	return &Handler{userService: userService}
 }
 
-// hash falso usado quando o usuário não existe, para o tempo de resposta
-// ser parecido nos dois casos (evita descobrir emails cadastrados pelo tempo).
+// dummyHash is compared when the user does not exist, so the response time
+// is similar in both cases (prevents discovering registered emails by timing).
 var dummyHash, _ = bcrypt.GenerateFromPassword([]byte("dummy-password"), bcrypt.DefaultCost)
 
 // Login godoc
 // @Summary      Login
-// @Description  Autentica com email e senha e retorna access e refresh token.
+// @Description  Authenticates with email and password and returns an access and a refresh token.
 // @Tags         Auth
 // @Accept       json
 // @Produce      json
-// @Param        body  body      LoginRequest  true  "Credenciais"
+// @Param        body  body      LoginRequest  true  "Credentials"
 // @Success      200   {object}  TokenResponse
 // @Failure      400   {object}  httpx.ErrorResponse
 // @Failure      401   {object}  httpx.ErrorResponse
@@ -42,7 +42,7 @@ func (h *Handler) Login(c *gin.Context) {
 
 	var input LoginRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "email e senha são obrigatórios"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "email and password are required"})
 		return
 	}
 
@@ -50,24 +50,24 @@ func (h *Handler) Login(c *gin.Context) {
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			_ = bcrypt.CompareHashAndPassword(dummyHash, []byte(input.Password))
-			c.JSON(http.StatusUnauthorized, httpx.ErrorResponse{Error: "credenciais inválidas"})
+			c.JSON(http.StatusUnauthorized, httpx.ErrorResponse{Error: "invalid credentials"})
 			return
 		}
-		// erro de verdade (banco fora, etc.): loga, mas não expõe detalhes
-		zap.L().Error("[AuthHandler] Login: erro ao buscar usuário", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, httpx.ErrorResponse{Error: "erro interno"})
+		// real error (database down, etc.): log it, but don't expose details
+		zap.L().Error("[AuthHandler] Login: failed to fetch user", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, httpx.ErrorResponse{Error: "internal error"})
 		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
-		c.JSON(http.StatusUnauthorized, httpx.ErrorResponse{Error: "credenciais inválidas"})
+		c.JSON(http.StatusUnauthorized, httpx.ErrorResponse{Error: "invalid credentials"})
 		return
 	}
 
 	resp, err := issueToken(user)
 	if err != nil {
-		zap.L().Error("[AuthHandler] Login: erro ao gerar tokens", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, httpx.ErrorResponse{Error: "erro interno"})
+		zap.L().Error("[AuthHandler] Login: failed to generate tokens", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, httpx.ErrorResponse{Error: "internal error"})
 		return
 	}
 
@@ -75,8 +75,8 @@ func (h *Handler) Login(c *gin.Context) {
 }
 
 // Refresh godoc
-// @Summary      Renovar tokens
-// @Description  Troca um refresh token válido por um novo par de access e refresh token.
+// @Summary      Refresh tokens
+// @Description  Exchanges a valid refresh token for a new access and refresh token pair.
 // @Tags         Auth
 // @Accept       json
 // @Produce      json
@@ -90,15 +90,15 @@ func (h *Handler) Refresh(c *gin.Context) {
 
 	var input RefreshRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "refresh_token é obrigatório"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "refresh_token is required"})
 		return
 	}
 
 	claims, err := jwt.ValidateRefreshToken(input.RefreshToken)
 	if err != nil {
-		msg := "refresh token inválido"
+		msg := "invalid refresh token"
 		if errors.Is(err, jwt.ErrExpiredToken) {
-			msg = "refresh token expired. login again"
+			msg = "refresh token expired, please log in again"
 		}
 		c.JSON(http.StatusUnauthorized, httpx.ErrorResponse{Error: msg})
 		return
@@ -107,7 +107,7 @@ func (h *Handler) Refresh(c *gin.Context) {
 	u, err := h.userService.GetUserById(c.Request.Context(), uint(claims.UserID))
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusUnauthorized, httpx.ErrorResponse{Error: "refresh token inválido"})
+			c.JSON(http.StatusUnauthorized, httpx.ErrorResponse{Error: "invalid refresh token"})
 			return
 		}
 		httpx.InternalError(c, "Auth", "Refresh", err)

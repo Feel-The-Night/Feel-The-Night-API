@@ -46,15 +46,15 @@ func Connect() (*gorm.DB, error) {
 		),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("falha ao conectar no banco de dados: %w", err)
+		return nil, fmt.Errorf("failed to connect to the database: %w", err)
 	}
 
 	if err := migrate(db); err != nil {
-		return nil, fmt.Errorf("falha ao executar o AutoMigrate: %w", err)
+		return nil, fmt.Errorf("failed to run migrations: %w", err)
 	}
 
 	if err := createConstraints(db); err != nil {
-		return nil, fmt.Errorf("falha ao criar constraints: %w", err)
+		return nil, fmt.Errorf("failed to create constraints: %w", err)
 	}
 
 	return db, nil
@@ -92,15 +92,15 @@ func createConstraints(db *gorm.DB) error {
 	for _, f := range fks {
 		if !m.HasConstraint(f.model, f.field) {
 			if err := m.CreateConstraint(f.model, f.field); err != nil {
-				return fmt.Errorf("erro criando constraint %s.%s: %w", fmt.Sprintf("%T", f.model), f.field, err)
+				return fmt.Errorf("failed to create constraint %s.%s: %w", fmt.Sprintf("%T", f.model), f.field, err)
 			}
 		}
 	}
 	return nil
 }
 
-// EscapeLike escapa \, % e _ para usar texto do usuário com LIKE/ILIKE
-// sem que esses caracteres virem curingas.
+// EscapeLike escapes \, % and _ so user input can be used with LIKE/ILIKE
+// without those characters acting as wildcards.
 func EscapeLike(s string) string {
 	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(s)
 }

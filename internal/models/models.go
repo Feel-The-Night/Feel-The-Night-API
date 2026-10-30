@@ -9,8 +9,8 @@ import (
 type Role string
 
 const (
-	RoleBeginner Role = "iniciante"
-	RoleVeteran  Role = "veterano"
+	RoleBeginner Role = "beginner"
+	RoleVeteran  Role = "veteran"
 	RoleAdmin    Role = "admin"
 )
 
@@ -27,13 +27,13 @@ type User struct {
 	// IsVeteran   bool   `gorm:"default:false"`
 	// IsModerator bool   `gorm:"default:false"`
 
-	// Campos de auditoria (substituindo gorm.Model)
+	// Audit fields (instead of embedding gorm.Model)
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt gorm.DeletedAt `gorm:"index"`
 
 	// Has many Events and Guides
-	Role   Role    `gorm:"type:varchar(15);not null;default:'iniciante';index;check:chk_users_role,role IN ('iniciante','veterano','admin')"`
+	Role   Role    `gorm:"type:varchar(15);not null;default:'beginner';index;check:chk_users_role,role IN ('beginner','veteran','admin')"`
 	Events []Event `gorm:"constraint:OnUpdate:CASCADE"`
 	Guides []Guide `gorm:"constraint:OnUpdate:CASCADE"`
 }

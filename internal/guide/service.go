@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	ErrCharacterNotFound = errors.New("Personagem nao encontrado")
+	ErrCharacterNotFound = errors.New("character not found")
 )
 
 type Service struct {
@@ -23,7 +23,7 @@ func NewService(db *gorm.DB) *Service {
 }
 
 func (s *Service) CreateGuide(ctx context.Context, guide *models.Guide) error {
-	// CreatedAt o GORM preenche sozinho; Likes/Dislikes têm default 0 no model
+	// GORM fills CreatedAt; Likes/Dislikes default to 0
 	var count int64
 	if err := s.db.WithContext(ctx).
 		Model(&models.Character{}).
@@ -52,7 +52,7 @@ func (s *Service) GetGuides(ctx context.Context, title string, page, limit int) 
 	if title != "" {
 		query = query.Where("title ILIKE ?", "%"+database.EscapeLike(title)+"%")
 	}
-	// Session deixa a query reutilizável no Count e no Find
+	// Session makes the query reusable for both Count and Find
 	query = query.Session(&gorm.Session{})
 
 	var total int64

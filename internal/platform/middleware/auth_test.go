@@ -14,7 +14,7 @@ import (
 
 func TestRequireAuthAndRole(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	t.Setenv("JWT_SECRET", "um-segredo-de-teste-com-mais-de-32-chars")
+	t.Setenv("JWT_SECRET", "a-test-secret-with-more-than-32-chars")
 
 	r := gin.New()
 	r.GET("/admin", RequireAuth(), RequireRole(models.RoleAdmin), func(c *gin.Context) {
@@ -32,12 +32,12 @@ func TestRequireAuthAndRole(t *testing.T) {
 		header string
 		want   int
 	}{
-		{"sem header", "", http.StatusUnauthorized},
-		{"token inventado", "Bearer abc.def.ghi", http.StatusUnauthorized},
-		{"iniciante", "Bearer " + token("iniciante"), http.StatusForbidden},
-		{"veterano", "Bearer " + token("veterano"), http.StatusForbidden},
+		{"no header", "", http.StatusUnauthorized},
+		{"made-up token", "Bearer abc.def.ghi", http.StatusUnauthorized},
+		{"beginner", "Bearer " + token("beginner"), http.StatusForbidden},
+		{"veteran", "Bearer " + token("veteran"), http.StatusForbidden},
 		{"admin", "Bearer " + token("admin"), http.StatusOK},
-		{"admin sem prefixo Bearer", token("admin"), http.StatusOK},
+		{"admin without Bearer prefix", token("admin"), http.StatusOK},
 	}
 
 	for _, tt := range tests {

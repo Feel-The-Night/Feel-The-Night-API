@@ -32,7 +32,7 @@ func TestMain(m *testing.M) {
 		postgres.BasicWaitStrategies(),
 	)
 	if err != nil {
-		log.Fatalf("subindo postgres: %v", err)
+		log.Fatalf("starting postgres: %v", err)
 	}
 
 	host, _ := pg.Host(ctx)
@@ -44,11 +44,11 @@ func TestMain(m *testing.M) {
 	os.Setenv("DB_PASSWORD", "test")
 	os.Setenv("DB_NAME", "ftn_test")
 	os.Setenv("DB_SSLMODE", "disable")
-	os.Setenv("JWT_SECRET", "um-segredo-de-teste-com-mais-de-32-chars")
+	os.Setenv("JWT_SECRET", "a-test-secret-with-more-than-32-chars")
 
-	db, err = database.Connect() // roda as migrations do Goose no container
+	db, err = database.Connect() // runs the Goose migrations inside the container
 	if err != nil {
-		log.Fatalf("conectando: %v", err)
+		log.Fatalf("connecting: %v", err)
 	}
 	router = app.NewRouter(db)
 

@@ -71,7 +71,7 @@ func (l *IPRateLimiter) Middleware() gin.HandlerFunc {
 			res.Cancel()
 			c.Header("Retry-After", strconv.Itoa(int(math.Ceil(delay.Seconds()))))
 			c.AbortWithStatusJSON(http.StatusTooManyRequests, httpx.ErrorResponse{
-				Error: "Muitas tentativas, tente novamente mais tarde",
+				Error: "too many attempts, try again later",
 			})
 			return
 		}

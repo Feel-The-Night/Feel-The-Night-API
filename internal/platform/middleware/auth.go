@@ -25,15 +25,15 @@ func RequireAuth() gin.HandlerFunc {
 		}
 
 		if tokenString == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, httpx.ErrorResponse{Error: "token ausente"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, httpx.ErrorResponse{Error: "missing token"})
 			return
 		}
 
 		claims, err := jwt.ValidateAccessToken(tokenString)
 		if err != nil {
-			msg := "token invalido"
+			msg := "invalid token"
 			if errors.Is(err, jwt.ErrExpiredToken) {
-				msg = "token expirado"
+				msg = "token expired"
 			}
 
 			c.AbortWithStatusJSON(http.StatusUnauthorized, httpx.ErrorResponse{Error: msg})
@@ -48,13 +48,13 @@ func RequireRole(roles ...models.Role) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		claims := GetClaims(c)
 		if claims == nil {
-			// RequireAuth não rodou antes (erro de configuração da rota)
+			// RequireAuth did not run first (route misconfiguration)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, httpx.ErrorResponse{Error: "missing or invalid token"})
 			return
 		}
 
 		if !slices.Contains(roles, models.Role(claims.Role)) {
-			zap.L().Warn("acesso negado",
+			zap.L().Warn("access denied",
 				zap.Int64("user_id", claims.UserID),
 				zap.String("role", claims.Role),
 			)

@@ -23,13 +23,13 @@ func NewHandler(guideService *Service) *Handler {
 }
 
 // CreateGuide godoc
-// @Summary      Criar um novo guia
-// @Description  Cria um guia com os dados informados no corpo da requisição.
+// @Summary      Create a new guide
+// @Description  Creates a guide from the request body.
 // @Tags         Guide
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        guide  body      CreateInput  true  "Dados do guia"
+// @Param        guide  body      CreateInput  true  "Guide data"
 // @Success      201    {object}  Response
 // @Router       /guides [post]
 func (h *Handler) CreateGuide(c *gin.Context) {
@@ -57,7 +57,7 @@ func (h *Handler) CreateGuide(c *gin.Context) {
 		switch {
 		case errors.Is(err, ErrCharacterNotFound),
 			errors.Is(err, gorm.ErrForeignKeyViolated):
-			c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "personagem não encontrado"})
+			c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "character not found"})
 		default:
 			httpx.InternalError(c, "Guide", "CreateGuide", err)
 		}
@@ -68,10 +68,10 @@ func (h *Handler) CreateGuide(c *gin.Context) {
 }
 
 // GetGuideById godoc
-// @Summary      Buscar guia por ID
+// @Summary      Get guide by ID
 // @Tags         Guide
 // @Produce      json
-// @Param        id   path      int  true  "ID do guia" minimum(1)
+// @Param        id   path      int  true  "Guide ID" minimum(1)
 // @Success      200  {object}  Response
 // @Router       /guides/{id} [get]
 func (h *Handler) GetGuideById(c *gin.Context) {
@@ -80,14 +80,14 @@ func (h *Handler) GetGuideById(c *gin.Context) {
 	var input IDInput
 
 	if err := c.ShouldBindUri(&input); err != nil {
-		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "id inválido"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "invalid id"})
 		return
 	}
 
 	guide, err := h.guideService.GetGuideById(c.Request.Context(), input.ID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, httpx.ErrorResponse{Error: "guia não encontrado"})
+			c.JSON(http.StatusNotFound, httpx.ErrorResponse{Error: "guide not found"})
 			return
 		}
 		httpx.InternalError(c, "Guide", "GetGuideById", err)
@@ -98,11 +98,11 @@ func (h *Handler) GetGuideById(c *gin.Context) {
 }
 
 // DeleteGuideById godoc
-// @Summary      Deletar guia por ID
+// @Summary      Delete guide by ID
 // @Tags         Guide
 // @Produce      json
 // @Security     BearerAuth
-// @Param        id   path      int  true  "ID do guia" minimum(1)
+// @Param        id   path      int  true  "Guide ID" minimum(1)
 // @Success      200  {object}  map[string]string
 // @Router       /guides/{id} [delete]
 func (h *Handler) DeleteGuideById(c *gin.Context) {
@@ -111,30 +111,30 @@ func (h *Handler) DeleteGuideById(c *gin.Context) {
 	var input IDInput
 
 	if err := c.ShouldBindUri(&input); err != nil {
-		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "id inválido"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "invalid id"})
 		return
 	}
 
 	if err := h.guideService.DeleteGuideById(c.Request.Context(), input.ID); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, httpx.ErrorResponse{Error: "guia não encontrado"})
+			c.JSON(http.StatusNotFound, httpx.ErrorResponse{Error: "guide not found"})
 			return
 		}
 		httpx.InternalError(c, "Guide", "DeleteGuideById", err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "guia deletado com sucesso"})
+	c.JSON(http.StatusOK, gin.H{"message": "guide deleted successfully"})
 }
 
 // UpdateGuide godoc
-// @Summary      Atualizar dados do guia
+// @Summary      Update guide data
 // @Tags         Guide
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        id    path      int                   true  "ID do guia" minimum(1)
-// @Param        body  body      UpdateInput  true  "Dados para atualização"
+// @Param        id    path      int                   true  "Guide ID" minimum(1)
+// @Param        body  body      UpdateInput  true  "Update data"
 // @Success      200   {object}  Response
 // @Router       /guides/{id} [patch]
 func (h *Handler) UpdateGuide(c *gin.Context) {
@@ -144,7 +144,7 @@ func (h *Handler) UpdateGuide(c *gin.Context) {
 	var bodyInput UpdateInput
 
 	if err := c.ShouldBindUri(&uriInput); err != nil {
-		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "id inválido"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "invalid id"})
 		return
 	}
 
@@ -153,7 +153,7 @@ func (h *Handler) UpdateGuide(c *gin.Context) {
 	guide, err := h.guideService.GetGuideById(c.Request.Context(), uriInput.ID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, httpx.ErrorResponse{Error: "guia não encontrado"})
+			c.JSON(http.StatusNotFound, httpx.ErrorResponse{Error: "guide not found"})
 			return
 		}
 		httpx.InternalError(c, "Guide", "UpdateGuide", err)
@@ -161,12 +161,12 @@ func (h *Handler) UpdateGuide(c *gin.Context) {
 	}
 
 	if models.Role(claims.Role) != models.RoleAdmin && guide.UserID != uint(claims.UserID) {
-		c.JSON(http.StatusForbidden, httpx.ErrorResponse{Error: "você só pode editar seus próprios guias"})
+		c.JSON(http.StatusForbidden, httpx.ErrorResponse{Error: "you can only edit your own guides"})
 		return
 	}
 
 	if err := c.ShouldBindJSON(&bodyInput); err != nil {
-		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "corpo da requisição inválido"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "invalid request body"})
 		return
 	}
 
@@ -182,7 +182,7 @@ func (h *Handler) UpdateGuide(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, gorm.ErrRecordNotFound):
-			c.JSON(http.StatusNotFound, httpx.ErrorResponse{Error: "guia não encontrado"})
+			c.JSON(http.StatusNotFound, httpx.ErrorResponse{Error: "guide not found"})
 		case errors.Is(err, apperr.ErrNoUpdateData):
 			c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: err.Error()})
 		default:
@@ -195,13 +195,13 @@ func (h *Handler) UpdateGuide(c *gin.Context) {
 }
 
 // GetGuides godoc
-// @Summary      Listar guias
-// @Description  Lista guias com paginação. O título é um filtro opcional (busca parcial).
+// @Summary      List guides
+// @Description  Lists guides with pagination. Title is an optional filter (partial match).
 // @Tags         Guide
 // @Produce      json
-// @Param        title  query     string  false  "Filtrar por título"
-// @Param        page   query     int     false  "Página"            default(1)  minimum(1)
-// @Param        limit  query     int     false  "Itens por página"  default(20) minimum(1) maximum(100)
+// @Param        title  query     string  false  "Filter by title"
+// @Param        page   query     int     false  "Page"            default(1)  minimum(1)
+// @Param        limit  query     int     false  "Items per page"  default(20) minimum(1) maximum(100)
 // @Success      200    {object}  httpx.PageResponse[Response]
 // @Failure      400    {object}  httpx.ErrorResponse
 // @Router       /guides [get]
@@ -211,7 +211,7 @@ func (h *Handler) GetGuides(c *gin.Context) {
 	var query ListQuery
 
 	if err := c.ShouldBindQuery(&query); err != nil {
-		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "parâmetros inválidos"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "invalid parameters"})
 		return
 	}
 

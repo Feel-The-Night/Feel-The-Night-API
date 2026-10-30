@@ -12,33 +12,33 @@ import (
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/models"
 )
 
-func TestVeteranoSoEditaOProprioGuia(t *testing.T) {
+func TestVeteranCanOnlyEditOwnGuide(t *testing.T) {
 	_, adminTk := createUser(t, "admin@t.com", models.RoleAdmin)
-	_, autorTk := createUser(t, "autor@t.com", models.RoleVeteran)
-	_, outroTk := createUser(t, "outro@t.com", models.RoleVeteran)
+	_, authorTk := createUser(t, "author@t.com", models.RoleVeteran)
+	_, otherTk := createUser(t, "other@t.com", models.RoleVeteran)
 
 	code, char := do(t, http.MethodPost, "/characters", adminTk, map[string]any{
 		"name": "Ryu", "description": "shoto", "type": "allrounder",
 	})
 	require.Equal(t, http.StatusCreated, code, char)
 
-	code, guide := do(t, http.MethodPost, "/guides", autorTk, map[string]any{
-		"title": "Combos do Ryu", "description": "básico", "character_id": char["character_id"],
+	code, guide := do(t, http.MethodPost, "/guides", authorTk, map[string]any{
+		"title": "Ryu combos", "description": "basics", "character_id": char["character_id"],
 	})
 	require.Equal(t, http.StatusCreated, code, guide)
 	path := "/guides/" + jsonID(guide["guide_id"])
 
-	code, _ = do(t, http.MethodPatch, path, outroTk, map[string]any{"title": "hackeado"})
-	assert.Equal(t, http.StatusForbidden, code, "outro veterano não pode editar")
+	code, _ = do(t, http.MethodPatch, path, otherTk, map[string]any{"title": "hacked"})
+	assert.Equal(t, http.StatusForbidden, code, "another veteran cannot edit")
 
-	code, _ = do(t, http.MethodPatch, path, autorTk, map[string]any{"title": "Combos v2"})
-	assert.Equal(t, http.StatusOK, code, "o autor pode editar")
+	code, _ = do(t, http.MethodPatch, path, authorTk, map[string]any{"title": "Combos v2"})
+	assert.Equal(t, http.StatusOK, code, "the author can edit")
 
 	code, _ = do(t, http.MethodPatch, path, adminTk, map[string]any{"title": "Combos v3"})
-	assert.Equal(t, http.StatusOK, code, "admin pode editar qualquer um")
+	assert.Equal(t, http.StatusOK, code, "admin can edit any guide")
 }
 
-func TestPersonagemComGuiaNaoPodeSerDeletado(t *testing.T) {
+func TestCharacterWithGuidesCannotBeDeleted(t *testing.T) {
 	_, adminTk := createUser(t, "admin2@t.com", models.RoleAdmin)
 
 	code, char := do(t, http.MethodPost, "/characters", adminTk, map[string]any{
@@ -47,7 +47,7 @@ func TestPersonagemComGuiaNaoPodeSerDeletado(t *testing.T) {
 	require.Equal(t, http.StatusCreated, code, char)
 
 	code, guide := do(t, http.MethodPost, "/guides", adminTk, map[string]any{
-		"title": "Ken básico", "description": "x", "character_id": char["character_id"],
+		"title": "Ken basics", "description": "x", "character_id": char["character_id"],
 	})
 	require.Equal(t, http.StatusCreated, code, guide)
 
@@ -55,17 +55,17 @@ func TestPersonagemComGuiaNaoPodeSerDeletado(t *testing.T) {
 	assert.Equal(t, http.StatusConflict, code)
 }
 
-func TestGuiaComPersonagemInexistente(t *testing.T) {
+func TestGuideWithNonexistentCharacter(t *testing.T) {
 	_, adminTk := createUser(t, "admin3@t.com", models.RoleAdmin)
 
 	code, _ := do(t, http.MethodPost, "/guides", adminTk, map[string]any{
-		"title": "Fantasma", "description": "x", "character_id": 999999,
+		"title": "Ghost", "description": "x", "character_id": 999999,
 	})
 	assert.Equal(t, http.StatusBadRequest, code)
 }
 
-func TestIniciantesNaoCriamConteudo(t *testing.T) {
-	_, tk := createUser(t, "novato@t.com", models.RoleBeginner)
+func TestBeginnersCannotCreateContent(t *testing.T) {
+	_, tk := createUser(t, "newbie@t.com", models.RoleBeginner)
 
 	code, _ := do(t, http.MethodPost, "/characters", tk, map[string]any{
 		"name": "Chun-Li", "description": "x", "type": "zoner",
@@ -73,18 +73,18 @@ func TestIniciantesNaoCriamConteudo(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, code)
 }
 
-func TestRateLimitNoLogin(t *testing.T) {
-	ip := "203.0.113.7:1234" // mesmo IP em todas as tentativas
+func TestLoginRateLimit(t *testing.T) {
+	ip := "203.0.113.7:1234" // same IP for every attempt
 
 	for i := 0; i < 5; i++ {
 		code, _ := doFrom(t, ip, http.MethodPost, "/auth/login", "", map[string]any{
-			"email": "ninguem@t.com", "password": "errada",
+			"email": "nobody@t.com", "password": "wrong",
 		})
-		require.Equal(t, http.StatusUnauthorized, code, "tentativa %d", i+1)
+		require.Equal(t, http.StatusUnauthorized, code, "attempt %d", i+1)
 	}
 
 	code, _ := doFrom(t, ip, http.MethodPost, "/auth/login", "", map[string]any{
-		"email": "ninguem@t.com", "password": "errada",
+		"email": "nobody@t.com", "password": "wrong",
 	})
-	assert.Equal(t, http.StatusTooManyRequests, code, "a 6ª tentativa deve ser bloqueada")
+	assert.Equal(t, http.StatusTooManyRequests, code, "the 6th attempt must be blocked")
 }

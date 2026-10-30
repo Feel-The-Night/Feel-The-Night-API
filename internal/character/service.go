@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	ErrExists    = errors.New("personagem já existe")
-	ErrHasGuides = errors.New("personagem tem guias")
+	ErrExists    = errors.New("character already exists")
+	ErrHasGuides = errors.New("character has linked guides")
 )
 
 type Service struct {
@@ -23,8 +23,8 @@ func NewService(db *gorm.DB) *Service {
 	return &Service{db: db}
 }
 
-// nameTaken verifica se o nome já é usado por outro personagem (exceto exceptID).
-// Compara sem diferenciar maiúsculas: "Ryu" e "ryu" são o mesmo personagem.
+// nameTaken reports whether the name is already used by another character (other than exceptID).
+// Case-insensitive: "Ryu" and "ryu" are the same character.
 func (s *Service) nameTaken(ctx context.Context, name string, exceptID uint) (bool, error) {
 	var count int64
 	err := s.db.WithContext(ctx).

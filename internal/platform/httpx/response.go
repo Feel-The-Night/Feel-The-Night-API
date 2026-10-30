@@ -18,11 +18,11 @@ func LogRequest(c *gin.Context, handler string, action string) {
 	)
 }
 
-// internalError loga o erro real e devolve uma mensagem genérica ao cliente.
+// InternalError logs the real error and returns a generic message to the client.
 func InternalError(c *gin.Context, handler string, action string, err error) {
 	if errors.Is(err, context.DeadlineExceeded) {
 		zap.L().Warn("timeout", zap.String("handler", handler), zap.String("action", action))
-		c.JSON(http.StatusGatewayTimeout, ErrorResponse{Error: "tempo de resposta esgotado"})
+		c.JSON(http.StatusGatewayTimeout, ErrorResponse{Error: "request timed out"})
 		return
 	}
 	zap.L().Error("internal error",
@@ -31,10 +31,10 @@ func InternalError(c *gin.Context, handler string, action string, err error) {
 		zap.String("path", c.Request.URL.Path),
 		zap.Error(err),
 	)
-	c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "erro interno"})
+	c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "internal error"})
 }
 
-// PageResponse serve para qualquer listagem paginada (guias, eventos, personagens).
+// PageResponse is the envelope for any paginated list (guides, events, characters).
 type PageResponse[T any] struct {
 	Data  []T   `json:"data"`
 	Page  int   `json:"page"`
@@ -42,8 +42,8 @@ type PageResponse[T any] struct {
 	Total int64 `json:"total"`
 }
 
-// ErrorResponse é o formato padrão para respostas de erro da API.
+// ErrorResponse is the standard format for API error responses.
 // @Title ErrorResponse
 type ErrorResponse struct {
-	Error string `json:"error" example:"o recurso solicitado não foi encontrado"`
+	Error string `json:"error" example:"the requested resource was not found"`
 }

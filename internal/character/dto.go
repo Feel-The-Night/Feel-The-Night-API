@@ -1,6 +1,6 @@
 package character
 
-// CreateInput representa os dados para criação de um personagem.
+// CreateInput holds the data to create a character.
 // @Title CreateInput
 type CreateInput struct {
 	Name        string `json:"name" binding:"required,max=100"`
@@ -9,13 +9,13 @@ type CreateInput struct {
 	Type        string `json:"type" binding:"required,max=30"`
 }
 
-// IDInput valida o parâmetro :id na URL.
+// IDInput validates the :id URL parameter.
 // @Title IDInput
 type IDInput struct {
 	ID uint `uri:"id" binding:"required,min=1"`
 }
 
-// UpdateInput representa os campos opcionais para atualização (PATCH) de personagem.
+// UpdateInput holds the optional fields for a character update (PATCH).
 // @Title UpdateInput
 type UpdateInput struct {
 	Name        string `json:"name" binding:"omitempty,max=100"`
@@ -24,7 +24,7 @@ type UpdateInput struct {
 	Type        string `json:"type" binding:"omitempty,max=30"`
 }
 
-// Response representa os dados do personagem retornados nas respostas HTTP.
+// Response is the character representation returned by the API.
 // @Title Response
 type Response struct {
 	CharacterID uint   `json:"character_id"`

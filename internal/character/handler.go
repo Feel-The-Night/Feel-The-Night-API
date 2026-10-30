@@ -22,13 +22,13 @@ func NewHandler(characterService *Service) *Handler {
 }
 
 // CreateCharacter godoc
-// @Summary      Criar um novo personagem
-// @Description  Cria um novo personagem com os dados informados no corpo da requisição.
+// @Summary      Create a new character
+// @Description  Creates a new character from the request body.
 // @Tags         Character
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        character  body      CreateInput  true  "Dados do Personagem"
+// @Param        character  body      CreateInput  true  "Character data"
 // @Success      201        {object}  Response
 // @Router       /characters [post]
 func (h *Handler) CreateCharacter(c *gin.Context) {
@@ -61,10 +61,10 @@ func (h *Handler) CreateCharacter(c *gin.Context) {
 }
 
 // GetCharacterById godoc
-// @Summary      Buscar personagem por ID
+// @Summary      Get character by ID
 // @Tags         Character
 // @Produce      json
-// @Param        id   path      int  true  "ID do personagem" minimum(1)
+// @Param        id   path      int  true  "Character ID" minimum(1)
 // @Success      200  {object}  Response
 // @Router       /characters/{id} [get]
 func (h *Handler) GetCharacterById(c *gin.Context) {
@@ -73,14 +73,14 @@ func (h *Handler) GetCharacterById(c *gin.Context) {
 	var input IDInput
 
 	if err := c.ShouldBindUri(&input); err != nil {
-		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "id inválido"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "invalid id"})
 		return
 	}
 
 	character, err := h.characterService.GetCharacterById(c.Request.Context(), input.ID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, httpx.ErrorResponse{Error: "personagem não encontrado"})
+			c.JSON(http.StatusNotFound, httpx.ErrorResponse{Error: "character not found"})
 			return
 		}
 		httpx.InternalError(c, "Character", "GetCharacterById", err)
@@ -91,11 +91,11 @@ func (h *Handler) GetCharacterById(c *gin.Context) {
 }
 
 // DeleteCharacterById godoc
-// @Summary      Deletar personagem por ID
+// @Summary      Delete character by ID
 // @Tags         Character
 // @Produce      json
 // @Security     BearerAuth
-// @Param        id   path        int  true  "ID do personagem" minimum(1)
+// @Param        id   path        int  true  "Character ID" minimum(1)
 // @Success      200  {object}    map[string]string
 // @Router       /characters/{id} [delete]
 func (h *Handler) DeleteCharacterById(c *gin.Context) {
@@ -104,34 +104,34 @@ func (h *Handler) DeleteCharacterById(c *gin.Context) {
 	var input IDInput
 
 	if err := c.ShouldBindUri(&input); err != nil {
-		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "id inválido"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "invalid id"})
 		return
 	}
 
 	if err := h.characterService.DeleteCharacterById(c.Request.Context(), input.ID); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, httpx.ErrorResponse{Error: "personagem não encontrado"})
+			c.JSON(http.StatusNotFound, httpx.ErrorResponse{Error: "character not found"})
 			return
 		}
 		if errors.Is(err, ErrHasGuides) {
-			c.JSON(http.StatusConflict, httpx.ErrorResponse{Error: "personagem possui guias"})
+			c.JSON(http.StatusConflict, httpx.ErrorResponse{Error: "character has linked guides"})
 			return
 		}
 		httpx.InternalError(c, "Character", "DeleteCharacterById", err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "personagem deletado com sucesso"})
+	c.JSON(http.StatusOK, gin.H{"message": "character deleted successfully"})
 }
 
 // UpdateCharacter godoc
-// @Summary      Atualizar dados do personagem
+// @Summary      Update character data
 // @Tags         Character
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        id    path      int                      true  "ID do personagem" minimum(1)
-// @Param        body  body      UpdateInput true  "Dados para atualização"
+// @Param        id    path      int                      true  "Character ID" minimum(1)
+// @Param        body  body      UpdateInput true  "Update data"
 // @Success      200   {object}  Response
 // @Router       /characters/{id} [patch]
 func (h *Handler) UpdateCharacter(c *gin.Context) {
@@ -141,12 +141,12 @@ func (h *Handler) UpdateCharacter(c *gin.Context) {
 	var bodyInput UpdateInput
 
 	if err := c.ShouldBindUri(&uriInput); err != nil {
-		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "id inválido"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "invalid id"})
 		return
 	}
 
 	if err := c.ShouldBindJSON(&bodyInput); err != nil {
-		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "corpo da requisição inválido"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "invalid request body"})
 		return
 	}
 
@@ -161,7 +161,7 @@ func (h *Handler) UpdateCharacter(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, gorm.ErrRecordNotFound):
-			c.JSON(http.StatusNotFound, httpx.ErrorResponse{Error: "personagem não encontrado"})
+			c.JSON(http.StatusNotFound, httpx.ErrorResponse{Error: "character not found"})
 		case errors.Is(err, apperr.ErrNoUpdateData):
 			c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: err.Error()})
 		case errors.Is(err, ErrExists):
@@ -176,12 +176,12 @@ func (h *Handler) UpdateCharacter(c *gin.Context) {
 }
 
 // GetCharacters godoc
-// @Summary      Listar personagens
-// @Description  Lista todos os personagens. Nome (busca parcial) e tipo são filtros opcionais.
+// @Summary      List characters
+// @Description  Lists all characters. Name (partial match) and type are optional filters.
 // @Tags         Character
 // @Produce      json
-// @Param        name  query     string  false  "Filtrar por nome"
-// @Param        type  query     string  false  "Filtrar por tipo"
+// @Param        name  query     string  false  "Filter by name"
+// @Param        type  query     string  false  "Filter by type"
 // @Success      200   {array}   Response
 // @Failure      400   {object}  httpx.ErrorResponse
 // @Router       /characters [get]
@@ -190,7 +190,7 @@ func (h *Handler) GetCharacters(c *gin.Context) {
 
 	var query ListQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
-		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "parâmetros de consulta inválidos"})
+		c.JSON(http.StatusBadRequest, httpx.ErrorResponse{Error: "invalid query parameters"})
 		return
 	}
 

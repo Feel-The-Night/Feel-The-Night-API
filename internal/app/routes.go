@@ -21,27 +21,27 @@ import (
 	"github.com/kisalto/Feel-The-Night-Swagger/internal/user"
 )
 
-// NewRouter monta a API: middlewares globais, services, handlers e rotas.
+// NewRouter wires the API: global middlewares, services, handlers and routes.
 func NewRouter(db *gorm.DB) *gin.Engine {
 	router := gin.Default()
 	router.Use(middleware.CorsMiddleware())
 	router.Use(middleware.Timeout(10 * time.Second))
 
 	if os.Getenv("APP_ENV") == "production" {
-		_ = router.SetTrustedProxies([]string{ /* faixas do proxy do Render */ })
+		_ = router.SetTrustedProxies([]string{ /* Render proxy IP ranges */ })
 	} else {
 		_ = router.SetTrustedProxies(nil)
 	}
 
-	// Middlewares de permissão (criados uma vez e repassados às features)
+	// Permission middlewares (created once and passed to the features)
 	logged := middleware.RequireAuth()
 	creators := middleware.RequireRole(models.RoleVeteran, models.RoleAdmin)
 	admin := middleware.RequireRole(models.RoleAdmin)
 
-	// Login e cadastro dividem o mesmo balde
+	// Login and sign-up share the same rate limit bucket
 	authLimiter := middleware.NewIPRateLimiter(rate.Every(12*time.Second), 5).Middleware()
 
-	// Rotas gerais
+	// General routes
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	router.GET("/health", HealthCheckHandler)
 

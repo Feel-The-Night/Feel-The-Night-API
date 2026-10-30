@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	ErrEmailTaken = errors.New("email já cadastrado")
+	ErrEmailTaken = errors.New("email already registered")
 )
 
 type Service struct {
@@ -31,12 +31,12 @@ func normalizeEmail(email string) string {
 func hashPassword(password string) (string, error) {
 	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return "", fmt.Errorf("erro ao gerar hash da senha: %w", err)
+		return "", fmt.Errorf("failed to hash password: %w", err)
 	}
 	return string(hashed), nil
 }
 
-// emailTaken verifica se o email já é usado por outro usuário (exceto exceptID).
+// emailTaken reports whether the email is already used by another user (other than exceptID).
 func (s *Service) emailTaken(ctx context.Context, email string, exceptID uint) (bool, error) {
 	var count int64
 	err := s.db.WithContext(ctx).
@@ -46,9 +46,9 @@ func (s *Service) emailTaken(ctx context.Context, email string, exceptID uint) (
 	return count > 0, err
 }
 
-// CreateUser cria um usuário novo.
-// O cliente só controla nickname, email, discord_id e senha:
-// ID, role, contadores e datas são sempre definidos aqui ou pelo banco.
+// CreateUser creates a new user.
+// The client only controls nickname, email, discord_id and password;
+// ID, role, counters and timestamps are always set here or by the database.
 func (s *Service) CreateUser(ctx context.Context, user *models.User) error {
 	user.Email = normalizeEmail(user.Email)
 
@@ -71,7 +71,7 @@ func (s *Service) CreateUser(ctx context.Context, user *models.User) error {
 	user.GuideCount = 0
 
 	if err := s.db.WithContext(ctx).Create(user).Error; err != nil {
-		// corrida: dois cadastros simultâneos passaram pela checagem
+		// race condition: two simultaneous sign-ups passed the check
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
 			return ErrEmailTaken
 		}
