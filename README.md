@@ -2,6 +2,8 @@
 
 REST backend for **Feel The Night**, a content platform for the fighting game community: guides, character pages and events.
 
+![CI](https://github.com/Feel-The-Night/Feel-The-Night-API/actions/workflows/ci.yml/badge.svg)
+
 ## Table of Contents
 
 - [Overview](#overview)
